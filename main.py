@@ -26,7 +26,7 @@ import time # Chronometter the timing
 import os # For saving the model
 #import tensorflow as tf
 
-#from textdata import TextLoader
+from textdata import TextData
 #from model import Model
 
 # For testing only
@@ -40,7 +40,7 @@ def parseArgs():
     
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--dataset', type=str, default='data/cornell', help='dataset to choose (cornell)')
+    parser.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (cornell)')
     parser.add_argument('--save', type=str, default='save', help='directory to load checkpointed models')
     parser.add_argument('--load', type=str, default='save', help='directory to store checkpointed models')
     
@@ -50,11 +50,13 @@ def main():
     """
     Launch the training and/or the interactive mode
     """
+    print("Welcome to DeepQA v0.1 !")
+    print()
+    
     args = parseArgs();
     
-    cornellData = CornellData('data/cornell')
-    
-    #data_loader = TextLoader(args.data_dir, args.batch_size, args.seq_length)
+    textData = TextData(args)
+
     #model = Model(args)
     
     #with tf.Session() as sess:
