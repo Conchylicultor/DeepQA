@@ -1,0 +1,7 @@
+Hi
+Hi!
+Are you conscious?
+How are you?
+What is your name ?
+Are you alive?
+TODO: Add all question from the original paper

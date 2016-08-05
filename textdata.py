@@ -54,11 +54,109 @@ class TextData:
         # Limits of the database (perfomances issues)
         # Limit ??? self.maxExampleLen = options.maxExampleLen or 25
         #self.linesLimit = #
+        # TODO: Add an option to cut the dataset (less size > faster)
         
         self.loadCorpus(self.samplesDir)
         
         pass
     
+    def getBatches(self, batchSize):
+        """Prepare the batches for the current epoch
+        Args:
+            batchSize (int)
+        Return:
+            list<>: Get a list of the batches for the next epoch
+        """
+        batches = []
+        for i in range(10000000):
+            batches.append(0)
+        return batches
+    
+  #local file = torch.DiskFile(self.examplesFilename, "r")
+  #file:quiet()
+  #local done = false
+
+  #return function()
+    #if done then
+      #return
+    #end
+
+    #local inputSeqs,targetSeqs = {},{}
+    #local maxInputSeqLen,maxTargetOutputSeqLen = 0,0
+
+    #for i = 1, size do
+      #local example = file:readObject()
+      #if example == nil then
+        #done = true
+        #file:close()
+        #return examples
+      #end
+      #inputSeq,targetSeq = unpack(example)
+      #if inputSeq:size(1) > maxInputSeqLen then
+        #maxInputSeqLen = inputSeq:size(1)
+      #end
+      #if targetSeq:size(1) > maxTargetOutputSeqLen then
+        #maxTargetOutputSeqLen = targetSeq:size(1)
+      #end
+      #table.insert(inputSeqs, inputSeq)
+      #table.insert(targetSeqs, targetSeq)
+    #end
+    
+    #local encoderInputs,decoderInputs,decoderTargets = nil,nil,nil
+    #if size == 1 then
+      #encoderInputs = torch.IntTensor(maxInputSeqLen):fill(0)
+      #decoderInputs = torch.IntTensor(maxTargetOutputSeqLen-1):fill(0)
+      #decoderTargets = torch.IntTensor(maxTargetOutputSeqLen-1):fill(0)
+    #else
+      #encoderInputs = torch.IntTensor(maxInputSeqLen,size):fill(0)
+      #decoderInputs = torch.IntTensor(maxTargetOutputSeqLen-1,size):fill(0)
+      #decoderTargets = torch.IntTensor(maxTargetOutputSeqLen-1,size):fill(0)
+    #end
+    
+    #for samplenb = 1, #inputSeqs do
+      #for word = 1,inputSeqs[samplenb]:size(1) do
+        #eosOffset = maxInputSeqLen - inputSeqs[samplenb]:size(1) -- for left padding
+        #if size == 1 then
+          #encoderInputs[word] = inputSeqs[samplenb][word]
+        #else
+          #encoderInputs[word+eosOffset][samplenb] = inputSeqs[samplenb][word]
+        #end
+      #end
+    #end
+    
+    #for samplenb = 1, #targetSeqs do
+      #trimmedEosToken = targetSeqs[samplenb]:sub(1,-2)
+      #for word = 1, trimmedEosToken:size(1) do
+        #if size == 1 then
+          #decoderInputs[word] = trimmedEosToken[word]
+        #else
+          #decoderInputs[word][samplenb] = trimmedEosToken[word]
+        #end
+      #end
+    #end
+    
+    #for samplenb = 1, #targetSeqs do
+      #trimmedGoToken = targetSeqs[samplenb]:sub(2,-1)
+      #for word = 1, trimmedGoToken:size(1) do
+        #if size == 1 then
+          #decoderTargets[word] = trimmedGoToken[word]
+        #else
+          #decoderTargets[word][samplenb] = trimmedGoToken[word]
+        #end
+      #end
+    #end
+
+    #return encoderInputs,decoderInputs,decoderTargets
+  #end
+
+    
+    def getVocabularySize(self):
+        """Return the number of words present in the dataset
+        Return:
+            int: Number of word on the loader corpus
+        """
+        return len(self.word2id)
+        
     def loadCorpus(self, dirName):
         """Load/create the conversations data
         Args:
