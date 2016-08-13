@@ -44,7 +44,7 @@ def main():
         trainingArgs = ""
         for keyArg, valueArg in dictParams:
             value = str(random(valueArg[0], max=valueArg[1]))
-            trainingArgs = trainingArgs + " --" + key + " " + value
+            trainingArgs += " --" + keyArg + " " + value
             
         # Launch the program
         os.run("main.py" + trainingArgs)

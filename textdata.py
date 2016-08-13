@@ -27,6 +27,17 @@ import os # Checking file existance
 
 from cornelldata import CornellData
 
+
+class Batch:
+    """Struct containing batches info
+    """
+    def __init__(self):
+        self.inputSeqs = []
+        self.targetSeqs = []
+        self.maxInputSeqLen = 0
+        self.maxTargetSeqLen = 0
+
+
 class TextData:
     """Dataset class
     Warning: No vocabulary limit
@@ -42,14 +53,15 @@ class TextData:
         self.samplesDir = "data/samples/"
         self.samplesName = "dataset.pkl"
         
-        self.goToken = -1 # Start of sequence
-        self.eosToken = -1 # End of sequence
-        self.unknownToken = -1 # Word dropped from vocabulary
+        self.padToken = -1  # Padding
+        self.goToken = -1  # Start of sequence
+        self.eosToken = -1  # End of sequence
+        self.unknownToken = -1  # Word dropped from vocabulary
         
-        self.trainingSamples = [] # 2d array containing each question and his answer
+        self.trainingSamples = []  # 2d array containing each question and his answer [[input,target]]
         
         self.word2id = {}
-        self.id2word = {} # For a rapid conversion
+        self.id2word = {}  # For a rapid conversion
         
         # Limits of the database (perfomances issues)
         # Limit ??? self.maxExampleLen = options.maxExampleLen or 25
@@ -60,16 +72,54 @@ class TextData:
         
         pass
     
+    def shuffle(self):
+        """Shuffe the training samples
+        """
+        # print("Shuffling the dataset...")
+        pass  # TODO
+    
     def getBatches(self, batchSize):
         """Prepare the batches for the current epoch
         Args:
             batchSize (int)
         Return:
-            list<>: Get a list of the batches for the next epoch
+            list<Batch>: Get a list of the batches for the next epoch
         """
+        self.shuffle()
+        
         batches = []
-        for i in range(10000000):
-            batches.append(0)
+        idSample = 0
+        
+        for _ in range(self.getSampleSize() // batchSize):
+            batch = Batch()
+            
+            # Create the batch tensor
+            for _ in range(batchSize):
+                # Unpack the sample
+                sample = self.trainingSamples[idSample]
+                inputSeq  = sample[0]
+                targetSeq = sample[1]
+                
+                # Compute max length sequence
+                if len(inputSeq) > batch.maxInputSeqLen:
+                    batch.maxInputSeqLen = len(inputSeq)
+                if len(targetSeq) > batch.maxTargetSeqLen:
+                    batch.maxTargetSeqLen = len(targetSeq)
+                
+                # Finalize
+                batch.inputSeqs.append(inputSeq)
+                batch.targetSeqs.append(targetSeq)
+                idSample += 1
+            
+            # Add padding
+            for i in range(batchSize):  # TODO: Left padding instead of right padding for the input ???
+                batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]]*(batch.maxInputSeqLen -len(batch.inputSeqs[i]))  # TODO: Check that we don't modify the originals sequences (=+ vs .append)
+                batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]]*(batch.maxTargetSeqLen-len(batch.targetSeqs[i]))
+            
+            # TODO: What about input decoder ?
+            #print(inputSeqs)
+
+            batches.append(batch)
         return batches
     
   #local file = torch.DiskFile(self.examplesFilename, "r")
@@ -150,6 +200,13 @@ class TextData:
   #end
 
     
+    def getSampleSize(self):
+        """Return the size of the dataset
+        Return:
+            int: Number of training samples
+        """
+        return len(self.trainingSamples)
+    
     def getVocabularySize(self):
         """Return the number of words present in the dataset
         Return:
@@ -181,7 +238,9 @@ class TextData:
             
             pass # TODO
         
-        # TODO: Shuffle the dataset
+        assert self.padToken == 0
+
+        # TODO: Shuffle the dataset < Not here: when we get the batches
         
         # Plot some stats:
         print('Loaded: %d words, %d QA' % (len(self.word2id), len(self.trainingSamples)))
@@ -193,7 +252,7 @@ class TextData:
         """
         
         with open(dirName + self.samplesName, 'wb') as handle:
-            data = {
+            data = {  # Warning: If adding something here, also modifying loadDataset
                 "word2id": self.word2id,
                 "id2word": self.id2word,
                 "trainingSamples": self.trainingSamples
@@ -206,21 +265,22 @@ class TextData:
             dirName (str): The directory where to load the model
         """
         with open(dirName + self.samplesName, 'rb') as handle:
-            data = pickle.load(handle)
+            data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data["word2id"]
             self.id2word = data["id2word"]
             self.trainingSamples = data["trainingSamples"]
             
+            self.padToken = self.word2id["<pad>"]
             self.goToken = self.word2id["<go>"]
             self.eosToken = self.word2id ["<eos>"]
             self.unknownToken = self.word2id["<unknown>"] # Restore special words
-            
-            
-    
+
+
     def createCorpus(self, conversations):
         """Extract all data from the given vocabulary
         """
         # Add standard tokens
+        self.padToken = self.makeWordId("<pad>") # Padding (Warning: first things to add > id=0 !!)
         self.goToken = self.makeWordId("<go>") # Start of sequence
         self.eosToken = self.makeWordId("<eos>") # End of sequence
         self.unknownToken = self.makeWordId("<unknown>") # Word dropped from vocabulary
@@ -230,7 +290,7 @@ class TextData:
         for conversation in tqdm(conversations, desc="Extract conversations"):
             self.extractConversation(conversation)
         
-        # TODO: Shuffling (before saving ?)
+        # TODO: Shuffling (before saving ? < NO!! After (otherwise no replication))
         
         # TODO: clear trainingSample after saving ?
     
@@ -308,7 +368,7 @@ class TextData:
         
         return id
 
-    def playADialog():
+    def playADialog(self):
         """Print a random dialogue from the dataset
         """
         pass

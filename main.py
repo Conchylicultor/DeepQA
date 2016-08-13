@@ -33,29 +33,37 @@ from model import Model
 
 def parseArgs():
     """
-    Parse the agruments from the given command line
+    Parse the arguments from the given command line
     """
     
     parser = argparse.ArgumentParser()
-    
-    # Dataset options
-    parser.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (cornell)')
-    parser.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used')
-    
+
     # Global options
-    parser.add_argument('--seed', type=int, default='123', help='random seed for replication')
-    parser.add_argument('--save', type=str, default='save', help='directory to load checkpointed models')
-    parser.add_argument('--load', type=str, default='save', help='directory to store checkpointed models')
-    
+    globalArgs = parser.add_argument_group('Global options', '')
+    globalArgs.add_argument('--seed', type=int, default='123', help='random seed for replication')
+    globalArgs.add_argument('--save', type=str, default='save', help='directory to load checkpointed models')
+    globalArgs.add_argument('--load', type=str, default='save', help='directory to store checkpointed models')
+
+    # Dataset options
+    datasetArgs = parser.add_argument_group('Dataset options', '')
+    datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (cornell)')
+    datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used')
+    datasetArgs.add_argument('--maxLength', type=int, default=50, help='maximum length of the sentence')  # Define number of maximum step of the RNN
+
     # Network options
-    parser.add_argument('--hiddenSize', type=int, default=300, help='number of hidden units in LSTM')
+    nnArgs = parser.add_argument_group('Network options', 'architecture related option')
+    nnArgs.add_argument('--hiddenSize', type=int, default=300, help='number of hidden units in each RNN cell')
+    nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
     
     # Training options
-    parser.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
-    parser.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
+    trainingArgs = parser.add_argument_group('Training options', '')
+    trainingArgs.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
+    trainingArgs.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
+    trainingArgs.add_argument('--sampleSize', type=int, default=512, help='nb of class to randomly sample with softmax (per batch)')
     
     return parser.parse_args()
-    
+
+
 def main():
     """
     Launch the training and/or the interactive mode
@@ -63,19 +71,21 @@ def main():
     print("Welcome to DeepQA v0.1 !")
     print()
     
-    args = parseArgs();
+    args = parseArgs()
     
     # TODO: Fix seed (WARNING: If dataset shuffling, make sure to do that after saving the 
     # dataset, otherwise, all which cames after the shuffling won't be replicable when 
     # reloading the dataset)
-    
+
     textData = TextData(args)
-    #textData.makeLighter(args.ratioDataset) # TODO: Limit size
+    #textData.makeLighter(args.ratioDataset)  # TODO: Limit size
     model = Model(args, textData)
     
     
     with tf.Session() as sess:
         tf.initialize_all_variables().run()
+        
+        writer = tf.train.SummaryWriter("save/summary", sess.graph)  # TODO: Define a custom name (created from the args) ?
         #saver = tf.train.Saver(tf.all_variables())
         for e in range(args.numEpochs):
             
@@ -83,45 +93,26 @@ def main():
             print()
             
             batches = textData.getBatches(args.batchSize)
-            # TODO: Also update learning parametters eventually
+            # TODO: Also update learning parameters eventually
             
             tic = time.clock()
-            for nextBatch in tqdm(batches):
+            for nextBatch in tqdm(batches, desc="Training"):
                 #_, loss = optimizer(feval, params, optimState)
                 # optOp.run()
-                pass
+                model.step(nextBatch)  # TODO: Return error ? return the prediction (testing mode only)
+
+
+
+                
             toc = time.clock()
-            print("Epoch finished in: ", toc-tic)
+            print("Epoch finished in: %2fs" % (toc-tic))
+            #print("  Errors: min= " .. errors:min())
+            #print("          max= " .. errors:max())
+            #print("       median= " .. errors:median()[1])
+            #print("         mean= " .. errors:mean())
+            #print("          std= " .. errors:std())
+            #print("          ppl= " .. torch.exp(errors:mean()))
             
-  #local errors = {}
-  #local timer = torch.Timer()
-
-  #for i=1, dataset.examplesCount/options.batchSize do
-    #collectgarbage()
-    
-    #local _,tloss = optim.adam(feval, params, optimState)
-    #err = tloss[1] -- optim returns a list
-  
-    #model.decoder:forget()
-    #model.encoder:forget()
-
-    #table.insert(errors,err)
-    #xlua.progress(i * options.batchSize, dataset.examplesCount)
-  #end
-
-  #xlua.progress(dataset.examplesCount, dataset.examplesCount)
-  #timer:stop()
-  
-  #errors = torch.Tensor(errors)
-  #print("\n\nFinished in " .. xlua.formatTime(timer:time().real) ..
-    #" " .. (dataset.examplesCount / timer:time().real) .. ' examples/sec.')
-  #print("\nEpoch stats:")
-  #print("  Errors: min= " .. errors:min())
-  #print("          max= " .. errors:max())
-  #print("       median= " .. errors:median()[1])
-  #print("         mean= " .. errors:mean())
-  #print("          std= " .. errors:std())
-  #print("          ppl= " .. torch.exp(errors:mean()))
             
             
             pass
@@ -146,7 +137,8 @@ def main():
                     #saver.save(sess, checkpoint_path, global_step = e * data_loader.num_batches + b)
                     #print("model saved to {}".format(checkpoint_path))
                     
-    pass
+    
+    print("The End! Thanks for using our program")
 
 if __name__ == "__main__":
     main()
