@@ -31,126 +31,180 @@ from textdata import TextData
 from model import Model
 
 
-def parseArgs():
+class Main:
     """
-    Parse the arguments from the given command line
+    Main class which launch the training or testing mode
     """
-    
-    parser = argparse.ArgumentParser()
 
-    # Global options
-    globalArgs = parser.add_argument_group('Global options')
-    globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')  # TODO: Not present yet
-    globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')  # TODO: Not present yet
-    globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the modelDir directory (Warning: the model will be destroyed)')
-    globalArgs.add_argument('--modelDir', type=str, default='save/model', help='directory to store/load checkpoints of the models')
-    globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
+    def __init__(self):
+        """
+        """
+        self.args = None
 
-    # Dataset options
-    datasetArgs = parser.add_argument_group('Dataset options')
-    datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')
-    datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used')
-    datasetArgs.add_argument('--maxLength', type=int, default=50, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
+        self.textData = None  # Dataset
+        self.model = None  # Sequence to sequence model
 
-    # Network options
-    nnArgs = parser.add_argument_group('Network options', 'architecture related option')
-    nnArgs.add_argument('--hiddenSize', type=int, default=256, help='number of hidden units in each RNN cell')
-    nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
-    nnArgs.add_argument('--embeddingSize', type=int, default=25, help='embedding size of the word representation')
-    
-    # Training options
-    trainingArgs = parser.add_argument_group('Training options')
-    trainingArgs.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
-    trainingArgs.add_argument('--saveEvery', type=int, default=300, help='nb of mini-batch step before creating a model checkpoint')  # TODO: Tune
-    trainingArgs.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
-    trainingArgs.add_argument('--learningRate', type=float, default=0.001, help='Learning rate')
+        # Tensorflow utilities for convenience saving/logging
+        self.writer = None
+        self.saver = None
 
-    return parser.parse_args()
+    @staticmethod
+    def parseArgs():
+        """
+        Parse the arguments from the given command line
+        """
+
+        parser = argparse.ArgumentParser()
+
+        # Global options
+        globalArgs = parser.add_argument_group('Global options')
+        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')  # TODO: Not present yet
+        globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')  # TODO: Not present yet
+        globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the modelDir directory (Warning: the model will be destroyed)')
+        globalArgs.add_argument('--modelDir', type=str, default='save/model', help='directory to store/load checkpoints of the models')
+        globalArgs.add_argument('--device', type=str, default=None, help='\'cpu\' or \'gpu\' (make sure you have enough free RAM), allow to choose what type of hardware use')  # TODO
+        globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
+
+        # Dataset options
+        datasetArgs = parser.add_argument_group('Dataset options')
+        datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')
+        datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')
+        datasetArgs.add_argument('--maxLength', type=int, default=50, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
+
+        # Network options
+        nnArgs = parser.add_argument_group('Network options', 'architecture related option')
+        nnArgs.add_argument('--hiddenSize', type=int, default=256, help='number of hidden units in each RNN cell')
+        nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
+        nnArgs.add_argument('--embeddingSize', type=int, default=25, help='embedding size of the word representation')
+
+        # Training options
+        trainingArgs = parser.add_argument_group('Training options')
+        trainingArgs.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
+        trainingArgs.add_argument('--saveEvery', type=int, default=50, help='nb of mini-batch step before creating a model checkpoint')
+        trainingArgs.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
+        trainingArgs.add_argument('--learningRate', type=float, default=0.001, help='Learning rate')
+
+        return parser.parse_args()
 
 
-def main():
-    """
-    Launch the training and/or the interactive mode
+    def main(self):
+        """
+        Launch the training and/or the interactive mode
+        """
+        print('Welcome to DeepQA v0.1 !')
+        print()
+        print('Tensorflow detected: v%s' % tf.__version__)
 
-    TODO: Could create a class, it would allow to divide the code in more functions. As init members, the main class
-    would have object like model, writer, saver
-    As fcts, it would have managePreviousModel() which would restore or reset models, and of course main()
-    It would be useful for cleaner code to separate testing/training
-    """
-    print('Welcome to DeepQA v0.1 !')
-    print()
-    print('Tensorflow detected: v%s' % tf.__version__);
+        # General initialisation
 
-    args = parseArgs()
+        self.args = self.parseArgs()
 
-    MODEL_NAME = 'model.ckpt'
+        #tf.logging.set_verbosity(tf.logging.INFO) # DEBUG, INFO, WARN (default), ERROR, or FATAL
 
-    #tf.logging.set_verbosity(tf.logging.INFO) # DEBUG, INFO, WARN (default), ERROR, or FATAL
+        if self.args.testInteractive:  # Training or testing mode
+            self.args.test = True
 
-    # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
-    # dataset, otherwise, all which cames after the shuffling won't be replicable when 
-    # reloading the dataset)
+        self.textData = TextData(self.args)
+        # with tf.device("/cpu:0"):  # TODO: Try with caution (fill all the RAM) !!
+        self.model = Model(self.args, self.textData)
 
-    textData = TextData(args)
-    textData.makeLighter(args.ratioDataset)  # Limit the number of training samples
-    model = Model(args, textData)
+        # Saver/summaries  # TODO: Synchronize writer, saver and globStep (saving/loading from the same place) (with subfolder name created from args ??)
+        self.writer = tf.train.SummaryWriter("save/summary")  # Define a custom name (created from the args) ?
+        self.saver = tf.train.Saver()
 
-    # Saver/summaries  # TODO: Synchronize writer, saver and globStep (saving/loading from the same place) (with subfolder name created from args ??)
-    mergedSummaries = tf.merge_all_summaries()
-    writer = tf.train.SummaryWriter("save/summary")  # Define a custom name (created from the args) ?
-    saver = tf.train.Saver()
-    globStep = 0
-    
-    with tf.Session() as sess:
-        print('Initialize variables...')
-        tf.initialize_all_variables().run()
-        writer.add_graph(sess.graph)
+        # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
+        # dataset, otherwise, all which cames after the shuffling won't be replicable when
+        # reloading the dataset)
 
-        print('Initialisation done. Managing previous model...')
+        # Running session
 
-        print('WARNING: ', end='')
-        modelDest = os.path.join(args.modelDir, MODEL_NAME)
-        if os.path.isfile(modelDest):
-            if args.reset:
-                print('Reset: Destroying previous model at %s' % modelDest)
-                os.remove(modelDest)
+        with tf.Session() as sess:
+            print('Initialize variables...')
+            tf.initialize_all_variables().run()
+            self.writer.add_graph(sess.graph)
+
+            self.managePreviousModel(sess)  # Reload the model (eventually)
+
+            if self.args.test:
+                self.mainTest(sess)  # TODO: test and testInteractive
             else:
-                print('Restoring previous model from %s' % modelDest)
-                saver.restore(sess, modelDest)
-                print("Model restored. ", end='')
-        else:
-            print('No previous model found, starting from clean directory: %s' % args.modelDir)
-            os.makedirs(args.modelDir)
+                self.mainTrain(sess)
+
+        print("The End! Thanks for using our program")
+
+    def mainTrain(self, sess):
+        """ Training loop
+        Args:
+            sess: The current running session
+        """
+
+        # Specific training dependent loading
+
+        self.textData.makeLighter(self.args.ratioDataset)  # Limit the number of training samples
+
+        mergedSummaries = tf.merge_all_summaries()
+        tf.initialize_variables(mergedSummaries).run()  # Useless ? Does this tensor need to be initialized ?
+        globStep = 0
+
+        # TODO: If restoring a model, also restoring globStep ? progression bar ? current batch ? continue summarize at same point
 
         print('Start training...')
 
-        for e in range(args.numEpochs):
+        for e in range(self.args.numEpochs):
 
-            print("--- Epoch %d/%d ; (lr=%f)" % (e, args.numEpochs, args.learningRate))
+            print("--- Epoch %d/%d ; (lr=%f)" % (e, self.args.numEpochs, self.args.learningRate))
             print()
 
-            batches = textData.getBatches(args)  # TODO: Shuffle
+            batches = self.textData.getBatches(self.args)  # TODO: Shuffle
             # TODO: Also update learning parameters eventually
 
             tic = time.clock()  # TODO: or time.time()
             for nextBatch in tqdm(batches, desc="Training"):
                 # Training pass
-                ops, feedDict = model.step(nextBatch)
+                ops, feedDict = self.model.step(nextBatch)
                 assert len(ops) == 2  # training, loss
                 _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)  # TODO: Get the returned loss, return the prediction (testing mode only)
-                writer.add_summary(summary, globStep)
+                self.writer.add_summary(summary, globStep)
                 globStep += 1
 
                 # Checkpoint
-                if globStep % args.saveEvery == 0:
+                if globStep % self.args.saveEvery == 0:
                     tqdm.write('Checkpoint reached: saving model...', end='')
-                    saver.save(sess, modelDest)
+                    self.saver.save(sess, self.args.modelDest)  # Warning: self.args.modelDest is defined in managePreviousModel
                     tqdm.write('Model saved.')
             toc = time.clock()
 
             print("Epoch finished in: %2fs" % (toc-tic))
-    
-    print("The End! Thanks for using our program")
+
+    def mainTest(self, sess):
+        """ Try predicting the sentences
+        Args:
+            sess: The current running session
+        """
+        print('Testing...')
+        pass
+
+    def managePreviousModel(self, sess):
+        """ Restore or reset the model
+        Args:
+            sess: The current running session
+        """
+        MODEL_NAME = 'model.ckpt'
+
+        print('WARNING: ', end='')
+        self.args.modelDest = os.path.join(self.args.modelDir, MODEL_NAME)  # Warning: Creation of new variable (accessible from train() for saving the model)
+        if os.path.isfile(self.args.modelDest):
+            if self.args.reset:
+                print('Reset: Destroying previous model at %s' % self.args.modelDest)
+                os.remove(self.args.modelDest)
+            else:
+                print('Restoring previous model from %s' % self.args.modelDest)
+                self.saver.restore(sess, self.args.modelDest)
+                print("Model restored.")
+        else:
+            print('No previous model found, starting from clean directory: %s' % self.args.modelDir)
+            os.makedirs(self.args.modelDir)
 
 if __name__ == "__main__":
-    main()
+    program = Main()
+    program.main()

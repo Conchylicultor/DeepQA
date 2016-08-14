@@ -55,14 +55,12 @@ class Model:
         self.output = None  # Output of the network (without the cost layer fct ?)
 
         # Construct the graphs
-        #with tf.device("/cpu:0"):  # TODO: Try with caution (fill all the RAM) !!
         self.buildNetwork()
         self.buildOptimizer()
 
     def buildNetwork(self):
         """ Create the computational graph
         """
-        forwardOnly = False  # TODO: Define globally
 
         # TODO: Create name_scopes (for better graph visualisation)
         # TODO: Use buckets (better perfs)
@@ -94,7 +92,7 @@ class Model:
             self.textData.getVocabularySize(),  # Both encoder and decoder have the same number of class
             embedding_size=self.args.embeddingSize,  # Dimension of each word
             output_projection=None,  # Eventually
-            feed_previous=forwardOnly  # When we test (forwardOnly), we use previous output as next input (feed_previous)
+            feed_previous=self.args.test  # When we test (self.args.test), we use previous output as next input (feed_previous)
         )
 
         # Finally, we define the loss function
