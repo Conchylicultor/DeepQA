@@ -23,6 +23,7 @@ Loads the dialogue corpus, builds the vocabulary
 import nltk  # For tokenize
 from tqdm import tqdm  # Progress bar
 import pickle  # Saving the data
+import math  # For float comparison
 import os  # Checking file existance
 
 from cornelldata import CornellData
@@ -72,9 +73,17 @@ class TextData:
         self.loadCorpus(self.samplesDir)
         
         pass
-    
+
+    def makeLighter(self, ratioDataset):
+        """Only keep a small fraction of the dataset, given by the ratio
+        """
+        if not math.isclose(ratioDataset, 1.0):
+            self.shuffle()  # Really ?
+            print('WARNING: Ratio feature not implemented !!!')
+        pass
+
     def shuffle(self):
-        """Shuffe the training samples
+        """Shuffle the training samples
         """
         # print("Shuffling the dataset...")
         pass  # TODO
@@ -183,16 +192,12 @@ class TextData:
             
             # Saving
             print('Saving dataset...')
-            self.saveDataset(dirName) # Saving tf samples
+            self.saveDataset(dirName)  # Saving tf samples
         else:
             print('Loading dataset from %s...' % (dirName))
             self.loadDataset(dirName)
-            
-            pass  # TODO
         
         assert self.padToken == 0
-
-        # TODO: Shuffle the dataset < Not here: when we get the batches
         
         # Plot some stats:
         print('Loaded: %d words, %d QA' % (len(self.word2id), len(self.trainingSamples)))
@@ -209,7 +214,7 @@ class TextData:
                 "id2word": self.id2word,
                 "trainingSamples": self.trainingSamples
                 }
-            pickle.dump(data, handle, -1) # Using the highest protocol available
+            pickle.dump(data, handle, -1)  # Using the highest protocol available
 
     def loadDataset(self, dirName):
         """Load samples from file
@@ -232,12 +237,12 @@ class TextData:
         """Extract all data from the given vocabulary
         """
         # Add standard tokens
-        self.padToken = self.makeWordId("<pad>") # Padding (Warning: first things to add > id=0 !!)
-        self.goToken = self.makeWordId("<go>") # Start of sequence
-        self.eosToken = self.makeWordId("<eos>") # End of sequence
-        self.unknownToken = self.makeWordId("<unknown>") # Word dropped from vocabulary
+        self.padToken = self.makeWordId("<pad>")  # Padding (Warning: first things to add > id=0 !!)
+        self.goToken = self.makeWordId("<go>")  # Start of sequence
+        self.eosToken = self.makeWordId("<eos>")  # End of sequence
+        self.unknownToken = self.makeWordId("<unknown>")  # Word dropped from vocabulary
         
-        # Prepocessing data
+        # Preprocessing data
 
         for conversation in tqdm(conversations, desc="Extract conversations"):
             self.extractConversation(conversation)

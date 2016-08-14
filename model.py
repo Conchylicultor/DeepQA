@@ -22,8 +22,8 @@ Model to predict the next sentence given an input sequence
 
 import tensorflow as tf
 
-from textdata import TextData
 from textdata import Batch
+
 
 class Model:
     """
@@ -41,11 +41,11 @@ class Model:
         print("Model creation...")
 
         self.textData = textData  # Keep a reference on the dataset
-        # self.args = args  # Same for the args, could be better than giving args as parameter ??
+        self.args = args  # Keep track of the parameters of the model
 
         # Placeholders
         self.encoderInputs  = None
-        self.decoderInputs  = None  # Same that decoderTarget (used for training only)
+        self.decoderInputs  = None  # Same that decoderTarget (used for training only) (TODO: Could we merge both ?)
         self.decoderTargets = None
         self.decoderWeights = None  # Adjust the learning to the target sentence size
 
@@ -55,32 +55,33 @@ class Model:
         self.output = None  # Output of the network (without the cost layer fct ?)
 
         # Construct the graphs
-        self.buildNetwork(args)
-        self.buildOptimizer(args)
+        #with tf.device("/cpu:0"):  # TODO: Try with caution (fill all the RAM) !!
+        self.buildNetwork()
+        self.buildOptimizer()
 
-    def buildNetwork(self, args):
+    def buildNetwork(self):
         """ Create the computational graph
-        Args:
-            args: parameters of the model
         """
         forwardOnly = False  # TODO: Define globally
 
-        # Creation of the rnn cell
-        with tf.variable_scope("enco_deco_cell") as scope:  # TODO: What does scope really does (just graph visualisation ?) / Use name_scope instead ?
-            encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
-            encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values
-            encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * args.numLayers, state_is_tuple=True)
+        # TODO: Create name_scopes (for better graph visualisation)
+        # TODO: Use buckets (better perfs)
 
-        # TODO: What format use ?? normally int32 (except if word2vec) !!!!
-        
+        # Creation of the rnn cell
+        encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
+        encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values (WARNING: No dropout when testing !!!)
+        encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
+
         # Network input (placeholders)
 
         # Batch size * sequence length * input dim (TODO: Variable length sequence !!)
-        self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]
+        with tf.name_scope('encoder'):
+            self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLength)]
 
-        self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]  # Same sentence length for input and output (Right ?)
-        self.decoderTargets = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]
-        self.decoderWeights = [tf.placeholder(tf.float32, [None, ]) for _ in range(args.maxLength)]
+        with tf.name_scope('decoder'):
+            self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLength)]  # Same sentence length for input and output (Right ?)
+            self.decoderTargets = [tf.placeholder(tf.int32,   [None, ], name='targets') for _ in range(self.args.maxLength)]
+            self.decoderWeights = [tf.placeholder(tf.float32, [None, ], name='weights') for _ in range(self.args.maxLength)]
 
         # Define the network
         # Here we use an embedding model, it takes integer as input and convert them into word vector for
@@ -91,46 +92,21 @@ class Model:
             encoDecoCell,
             self.textData.getVocabularySize(),
             self.textData.getVocabularySize(),  # Both encoder and decoder have the same number of class
-            embedding_size=25,  # Dimension of each word TODO: args.embeddingSize (or use = args.hiddenSize ?)
+            embedding_size=self.args.embeddingSize,  # Dimension of each word
             output_projection=None,  # Eventually
             feed_previous=forwardOnly  # When we test (forwardOnly), we use previous output as next input (feed_previous)
         )
 
         # Finally, we define the loss function
         self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
+        self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost
 
-    def garbageCode(self, args): # TODO: Cleanup garbage code
-        # Softmax layer to get the word prediction
-        # WARNING: Do not confuse args.sampleSize with self.textData.getSampleSize(), the number of training sample
-        assert 0 < args.sampleSize < self.textData.getVocabularySize(), "sampleSize should be smaller than the vocabulary sze"
 
-        with tf.variable_scope("softmax") as scope:
-            W = tf.get_variable("proj_w", [args.hiddenSize, self.textData.getVocabularySize()])
-            Wt = tf.transpose(W)
-            b = tf.get_variable("proj_b", [self.textData.getVocabularySize()])
-            #output_projection = (W, b)
-
-            # Define sampled loss function (Only for training)
-            def sampledLoss(inputs, labels):
-                labels = tf.reshape(labels, [-1, 1])  # TODO: What does it do ? Flatten the labels ??
-                return tf.nn.sampled_softmax_loss(Wt, b,
-                                                  inputs,  # [batch_size, hidden_size] Forward activation
-                                                  labels,  # [batch_size, num_true=1] Only one correct label by prediction
-                                                  args.sampleSize,  # Number of classes to randomly sample per batch
-                                                  self.textData.getVocabularySize())
-            #seq2seq.sequence_loss(dec_outputs, labels, weights, vocab_size)
-            self.lossFct = sampledLoss
-
-            #self.output = tf.nn.softmax(tf.matmul(output, W) + b)  # Do argmax of the softmax prediction to get the id of the predicted word
-
-        
-    def buildOptimizer(self, args):
+    def buildOptimizer(self):
         """ Initialize the optimizer
-        Args:
-            args: parametters of the model
         """
         opt = tf.train.AdamOptimizer(
-            learning_rate=0.001, 
+            learning_rate=self.args.learningRate,
             beta1=0.9, 
             beta2=0.999, 
             epsilon=1e-08
@@ -138,36 +114,41 @@ class Model:
         self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
     
     
-    def step(self, sess, batch, args):
-        """ Forward/training step
+    def step(self, batch):
+        """ Forward/training step operation.
+        Does not perform run on itself but just return the operators to do so. Those have then to be run
         Args:
-            sess (tf.Session): a tensorflow session object
             batch (Batch): Input data on testing mode, input and target on output mode
             TODO: (forwardOnly/trainingMode ?) batch
+        Return:
+            (ops), dict: A tuple of the (training, loss) operators with the associated feed dictionary
         """
         # TODO: Check with torch lua how the batches are created (encoderInput/Output)
 
         # Feed the dictionary
         feedDict = {}
-        #print('enc_inp:', len(self.encoderInputs))
-        #print('batc:', len(batch.inputSeqs))
-        for i in range(args.maxLength):
-            #print('i:', i)
-            #print(self.encoderInputs[i].get_shape())
-            #print(len(batch.inputSeqs[i]))
+        for i in range(self.args.maxLength):
             feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
             feedDict[self.decoderInputs[i]]  = batch.targetSeqs[i]
             feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
             feedDict[self.decoderWeights[i]] = batch.weights[i]
 
-        # Run one pass
-        sess.run(self.optOp, feedDict)
+        # Return one pass operator
+        return (self.optOp, self.lossFct), feedDict
 
-        # Instead of having session as parameter, try returning just self.optOp and feedDict
-        # so that from the main, we can try something like:
-        # sess.run(model.step())
-
-        #_, loss = optimizer(feval, params, optimState)
-        #_, loss_t, summary = sess.run([self.optOp, self.lossFct, summary_op], feed_dict)
-
-        pass
+    @staticmethod
+    def attachDetailedSummaries(var, name):
+        """Attach a lot of summaries to a Tensor.
+        Args:
+            var (tf.tensor): tensor object for which attach the summary
+            name (str): name under which the summary will be generated
+        """
+        with tf.name_scope('summaries'):
+            mean = tf.reduce_mean(var)
+            tf.scalar_summary('mean/' + name, mean)
+            with tf.name_scope('stddev'):
+                stddev = tf.sqrt(tf.reduce_sum(tf.square(var - mean)))
+            tf.scalar_summary('sttdev/' + name, stddev)
+            tf.scalar_summary('max/' + name, tf.reduce_max(var))
+            tf.scalar_summary('min/' + name, tf.reduce_min(var))
+            tf.histogram_summary(name, var)
