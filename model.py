@@ -38,56 +38,68 @@ class Model:
             args: parametters of the model
             textData: the dataset object
         """
-        self.textData = textData  # Keep a reference on the dataset
+        print("Model creation...")
 
-        #self.data = data
-        #self.target = target
-        self.network = None
+        self.textData = textData  # Keep a reference on the dataset
+        # self.args = args  # Same for the args, could be better than giving args as parameter ??
+
+        # Placeholders
+        self.encoderInputs  = None
+        self.decoderInputs  = None  # Same that decoderTarget (used for training only)
+        self.decoderTargets = None
+        self.decoderWeights = None  # Adjust the learning to the target sentence size
+
+        # Main operators
         self.lossFct = None
         self.optOp = None
-        self.output = None  # Output of the network (without the cost layer fct)
-        
-        # TODO: Use: nb of hidden units args.... ; textData.getVocabularySize() ; gotoken, eostoken
+        self.output = None  # Output of the network (without the cost layer fct ?)
 
+        # Construct the graphs
         self.buildNetwork(args)
         self.buildOptimizer(args)
-        #self.buildError(args)
-        
+
     def buildNetwork(self, args):
         """ Create the computational graph
         Args:
             args: parameters of the model
         """
-        print("Model creation")
-        
-        # TODO: Create both encoder network and decoder network ??
-        
+        forwardOnly = False  # TODO: Define globally
+
         # Creation of the rnn cell
         with tf.variable_scope("enco_deco_cell") as scope:  # TODO: What does scope really does (just graph visualisation ?) / Use name_scope instead ?
             encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
             encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values
             encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * args.numLayers, state_is_tuple=True)
-        
-        self.network = encoDecoCell
-        
-        # TODO: What is the input word vector representation (one hot ? word2vec ? just number ?)
-        inputDim = 1
-        
-        # TODO: What format use ?? robably int32 (except if word2vec) !!!!
+
+        # TODO: What format use ?? normally int32 (except if word2vec) !!!!
         
         # Network input (placeholders)
-        phData = tf.placeholder(tf.float32, [None, args.maxLength, inputDim])  # Batch size * sequence length * input dim (TODO: Variable length sequence !!)
-        #phTarget = tf.placeholder(tf.float32, [None, 21])
-        phSeqLength = tf.placeholder(tf.int32, [None])  # Contain the sequence length
-        
+
+        # Batch size * sequence length * input dim (TODO: Variable length sequence !!)
+        self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]
+
+        self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]  # Same sentence length for input and output (Right ?)
+        self.decoderTargets = [tf.placeholder(tf.int32,   [None, ]) for _ in range(args.maxLength)]
+        self.decoderWeights = [tf.placeholder(tf.float32, [None, ]) for _ in range(args.maxLength)]
+
         # Define the network
-        output, state = tf.nn.dynamic_rnn(
+        # Here we use an embedding model, it takes integer as input and convert them into word vector for
+        # better word representation
+        decoderOutputs, states = tf.nn.seq2seq.embedding_rnn_seq2seq(
+            self.encoderInputs,  # List<[batch=?, inputDim=1]>, list of size args.maxLength
+            self.decoderInputs,  # For training, we force the correct output (feed_previous=False)
             encoDecoCell,
-            phData,
-            dtype=tf.float32,
-            sequence_length=phSeqLength,
+            self.textData.getVocabularySize(),
+            self.textData.getVocabularySize(),  # Both encoder and decoder have the same number of class
+            embedding_size=25,  # Dimension of each word TODO: args.embeddingSize (or use = args.hiddenSize ?)
+            output_projection=None,  # Eventually
+            feed_previous=forwardOnly  # When we test (forwardOnly), we use previous output as next input (feed_previous)
         )
 
+        # Finally, we define the loss function
+        self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
+
+    def garbageCode(self, args): # TODO: Cleanup garbage code
         # Softmax layer to get the word prediction
         # WARNING: Do not confuse args.sampleSize with self.textData.getSampleSize(), the number of training sample
         assert 0 < args.sampleSize < self.textData.getVocabularySize(), "sampleSize should be smaller than the vocabulary sze"
@@ -109,57 +121,7 @@ class Model:
             #seq2seq.sequence_loss(dec_outputs, labels, weights, vocab_size)
             self.lossFct = sampledLoss
 
-            self.output = tf.nn.softmax(tf.matmul(output, W) + b)  # Do argmax of the softmax prediction to get the id of the predicted word
-
-        def garbageCode():
-            # TODO: Cleanup garbage code
-            # Finalize the graph
-            forwardOnly = False  # TODO: Modify that later
-            if forwardOnly:
-                outputs = tf.nn.seq2seq.basic_rnn_seq2seq(
-                    encoder_inputs,
-                    decoder_inputs,
-                    encoDecoCell,
-                )
-                self.outputs, self.losses = tf.nn.seq2seq.model_with_buckets(
-                    self.encoder_inputs, self.decoder_inputs, targets,
-                    self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
-                    softmax_loss_function=softmax_loss_function)
-                if output_projection is not None:
-                    for b in xrange(len(buckets)):
-                        self.outputs[b] = [
-                            tf.matmul(output, output_projection[0]) + output_projection[1]
-                            for output in self.outputs[b]
-                        ]
-            else:
-                self.outputs, self.losses = tf.nn.seq2seq.model_with_buckets(
-                    self.encoder_inputs, self.decoder_inputs, targets,
-                    self.target_weights, buckets,
-                    lambda x, y: seq2seq_f(x, y, False),
-                    softmax_loss_function=softmax_loss_function)
-
-            #tf.nn.seq2seq.basic_rnn_seq2seq
-
-            # Seq2seq model
-            #self.forwardSeq2seq = def forwardSeq2seq():
-            #    return tf.nn.seq2seq.embedding_attention_seq2seq(
-            #       encoder_inputs, decoder_inputs, cell, vocab_size,
-            #       vocab_size,hidden_size, output_projection=output_projection,
-            #       feed_previous=do_decode)
-
-
-            ## Initial state of the LSTM memory.
-            #state = tf.zeros([batch_size, lstm.state_size])
-
-            #loss = 0.0
-            #for current_batch_of_words in words_in_dataset:
-                ## The value of state is updated after processing each batch of words.
-                #output, state = lstm(current_batch_of_words, state)
-
-                ## The LSTM output can be used to make next word predictions
-                #logits = tf.matmul(output, softmax_w) + softmax_b
-                #probabilities = tf.nn.softmax(logits)
-                #loss += loss_function(probabilities, target_words)
+            #self.output = tf.nn.softmax(tf.matmul(output, W) + b)  # Do argmax of the softmax prediction to get the id of the predicted word
 
         
     def buildOptimizer(self, args):
@@ -173,38 +135,39 @@ class Model:
             beta2=0.999, 
             epsilon=1e-08
         )
-        self.optOp = opt.minimize(self.lossFct) #, model.getVariables())
-
-
-    def buildError(self, args):
-        """ Create the error function
-        Args:
-            args: parametters of the model
-        """
-        mistakes = tf.not_equal(
-            tf.argmax(self.target, 1), tf.argmax(self.prediction, 1))
-        return tf.reduce_mean(tf.cast(mistakes, tf.float32))
+        self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
     
     
-    def step(self, batch):
-        """ Forward step
+    def step(self, sess, batch, args):
+        """ Forward/training step
         Args:
-            batch: Input data on testing mode, input and target on output mode
+            sess (tf.Session): a tensorflow session object
+            batch (Batch): Input data on testing mode, input and target on output mode
             TODO: (forwardOnly/trainingMode ?) batch
         """
-        X = [np.random.choice(vocab_size, size=(seq_length,), replace=False)
-             for _ in range(batch_size)]
-        Y = X[:]
+        # TODO: Check with torch lua how the batches are created (encoderInput/Output)
 
-        batch.inputSeqs
+        # Feed the dictionary
+        feedDict = {}
+        #print('enc_inp:', len(self.encoderInputs))
+        #print('batc:', len(batch.inputSeqs))
+        for i in range(args.maxLength):
+            #print('i:', i)
+            #print(self.encoderInputs[i].get_shape())
+            #print(len(batch.inputSeqs[i]))
+            feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
+            feedDict[self.decoderInputs[i]]  = batch.targetSeqs[i]
+            feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
+            feedDict[self.decoderWeights[i]] = batch.weights[i]
 
-        # Dimshuffle to seq_len * batch_size
-        X = np.array(X).T
-        Y = np.array(Y).T
+        # Run one pass
+        sess.run(self.optOp, feedDict)
 
-        feed_dict = {enc_inp[t]: X[t] for t in range(seq_length)}
-        feed_dict.update({labels[t]: Y[t] for t in range(seq_length)})
+        # Instead of having session as parameter, try returning just self.optOp and feedDict
+        # so that from the main, we can try something like:
+        # sess.run(model.step())
 
-        _, loss_t, summary = sess.run([train_op, loss, summary_op], feed_dict)
+        #_, loss = optimizer(feval, params, optimState)
+        #_, loss_t, summary = sess.run([self.optOp, self.lossFct, summary_op], feed_dict)
 
         pass

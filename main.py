@@ -68,9 +68,10 @@ def main():
     """
     Launch the training and/or the interactive mode
     """
-    print("Welcome to DeepQA v0.1 !")
+    print('Welcome to DeepQA v0.1 !')
     print()
-    
+    print('Tensorflow detected: v%s' % tf.__version__);
+
     args = parseArgs()
     
     # TODO: Fix seed (WARNING: If dataset shuffling, make sure to do that after saving the 
@@ -83,28 +84,29 @@ def main():
     
     
     with tf.Session() as sess:
+        print('Initialize variables...')
         tf.initialize_all_variables().run()
+
+        print('Initialisation done, creating summary...')
         
         writer = tf.train.SummaryWriter("save/summary", sess.graph)  # TODO: Define a custom name (created from the args) ?
         #saver = tf.train.Saver(tf.all_variables())
+
+        print('Start training...')
+
         for e in range(args.numEpochs):
             
             print("--- Epoch %d/%d ; (LR=TODO?)" % (e, args.numEpochs))
             print()
             
-            batches = textData.getBatches(args.batchSize)
+            batches = textData.getBatches(args)
             # TODO: Also update learning parameters eventually
             
             tic = time.clock()
             for nextBatch in tqdm(batches, desc="Training"):
-                #_, loss = optimizer(feval, params, optimState)
-                # optOp.run()
-                model.step(nextBatch)  # TODO: Return error ? return the prediction (testing mode only)
-
-
-
-                
+                model.step(sess, nextBatch, args)  # TODO: Return error ? return the prediction (testing mode only)
             toc = time.clock()
+
             print("Epoch finished in: %2fs" % (toc-tic))
             #print("  Errors: min= " .. errors:min())
             #print("          max= " .. errors:max())

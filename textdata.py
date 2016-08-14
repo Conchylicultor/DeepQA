@@ -20,10 +20,10 @@ Loads the dialogue corpus, builds the vocabulary
 """
 
 #import tensorflow as tf
-import nltk # For tokenize
-from tqdm import tqdm # Progress bar
-import pickle # Saving the data
-import os # Checking file existance
+import nltk  # For tokenize
+from tqdm import tqdm  # Progress bar
+import pickle  # Saving the data
+import os  # Checking file existance
 
 from cornelldata import CornellData
 
@@ -34,7 +34,8 @@ class Batch:
     def __init__(self):
         self.inputSeqs = []
         self.targetSeqs = []
-        self.maxInputSeqLen = 0
+        self.weights = []
+        self.maxInputSeqLen = 0  # Not used
         self.maxTargetSeqLen = 0
 
 
@@ -46,7 +47,7 @@ class TextData:
     def __init__(self, args):
         """Load all conversations
         Args:
-            args: parametters of the model
+            args: parameters of the model
         """
         # Path variables
         self.corpusDir = "data/cornell/"
@@ -78,10 +79,10 @@ class TextData:
         # print("Shuffling the dataset...")
         pass  # TODO
     
-    def getBatches(self, batchSize):
+    def getBatches(self, args):
         """Prepare the batches for the current epoch
         Args:
-            batchSize (int)
+            args (Obj): parameters were to extract batchSize (int) and maxLength (int)
         Return:
             list<Batch>: Get a list of the batches for the next epoch
         """
@@ -90,16 +91,16 @@ class TextData:
         batches = []
         idSample = 0
         
-        for _ in range(self.getSampleSize() // batchSize):
+        for _ in range(self.getSampleSize() // args.batchSize):
             batch = Batch()
             
             # Create the batch tensor
-            for _ in range(batchSize):
+            for _ in range(args.batchSize):
                 # Unpack the sample
                 sample = self.trainingSamples[idSample]
                 inputSeq  = sample[0]
                 targetSeq = sample[1]
-                
+
                 # Compute max length sequence
                 if len(inputSeq) > batch.maxInputSeqLen:
                     batch.maxInputSeqLen = len(inputSeq)
@@ -110,94 +111,45 @@ class TextData:
                 batch.inputSeqs.append(inputSeq)
                 batch.targetSeqs.append(targetSeq)
                 idSample += 1
-            
+
+            # Simple hack to truncate the sequence to the right length (TODO: Improve)
+            batch.maxInputSeqLen = args.maxLength
+            batch.maxTargetSeqLen = args.maxLength
+            for i in range(args.batchSize):
+                if len(batch.inputSeqs[i]) > args.maxLength:
+                    batch.inputSeqs[i] = batch.inputSeqs[i][0:args.maxLength]
+                if len(batch.targetSeqs[i]) > args.maxLength:
+                    batch.targetSeqs[i] = batch.targetSeqs[i][0:args.maxLength]
+
             # Add padding
-            for i in range(batchSize):  # TODO: Left padding instead of right padding for the input ???
+            for i in range(args.batchSize):  # TODO: Left padding instead of right padding for the input ???
+                batch.weights.append([1.0]*len(batch.targetSeqs[i]) + [0.0]*(batch.maxTargetSeqLen-len(batch.targetSeqs[i])))
                 batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]]*(batch.maxInputSeqLen -len(batch.inputSeqs[i]))  # TODO: Check that we don't modify the originals sequences (=+ vs .append)
                 batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]]*(batch.maxTargetSeqLen-len(batch.targetSeqs[i]))
-            
-            # TODO: What about input decoder ?
-            #print(inputSeqs)
+
+            # Simple hack to reshape the input (TODO: Improve)
+            inputSeqsT = []
+            targetSeqsT = []
+            weightsT = []  # Corrected orientation
+            for i in range(args.maxLength):
+                inputSeqT = []
+                targetSeqT = []
+                weightT = []
+                for j in range(args.batchSize):
+                    inputSeqT.append(batch.inputSeqs[j][i])
+                    targetSeqT.append(batch.targetSeqs[j][i])
+                    weightT.append(batch.weights[j][i])
+                inputSeqsT.append(inputSeqT)
+                targetSeqsT.append(targetSeqT)
+                weightsT.append(weightT)
+            batch.inputSeqs = inputSeqsT
+            batch.targetSeqs = targetSeqsT
+            batch.weights = weightsT
+
+            #self.printBatch(batch)  # Debug
 
             batches.append(batch)
         return batches
-    
-  #local file = torch.DiskFile(self.examplesFilename, "r")
-  #file:quiet()
-  #local done = false
-
-  #return function()
-    #if done then
-      #return
-    #end
-
-    #local inputSeqs,targetSeqs = {},{}
-    #local maxInputSeqLen,maxTargetOutputSeqLen = 0,0
-
-    #for i = 1, size do
-      #local example = file:readObject()
-      #if example == nil then
-        #done = true
-        #file:close()
-        #return examples
-      #end
-      #inputSeq,targetSeq = unpack(example)
-      #if inputSeq:size(1) > maxInputSeqLen then
-        #maxInputSeqLen = inputSeq:size(1)
-      #end
-      #if targetSeq:size(1) > maxTargetOutputSeqLen then
-        #maxTargetOutputSeqLen = targetSeq:size(1)
-      #end
-      #table.insert(inputSeqs, inputSeq)
-      #table.insert(targetSeqs, targetSeq)
-    #end
-    
-    #local encoderInputs,decoderInputs,decoderTargets = nil,nil,nil
-    #if size == 1 then
-      #encoderInputs = torch.IntTensor(maxInputSeqLen):fill(0)
-      #decoderInputs = torch.IntTensor(maxTargetOutputSeqLen-1):fill(0)
-      #decoderTargets = torch.IntTensor(maxTargetOutputSeqLen-1):fill(0)
-    #else
-      #encoderInputs = torch.IntTensor(maxInputSeqLen,size):fill(0)
-      #decoderInputs = torch.IntTensor(maxTargetOutputSeqLen-1,size):fill(0)
-      #decoderTargets = torch.IntTensor(maxTargetOutputSeqLen-1,size):fill(0)
-    #end
-    
-    #for samplenb = 1, #inputSeqs do
-      #for word = 1,inputSeqs[samplenb]:size(1) do
-        #eosOffset = maxInputSeqLen - inputSeqs[samplenb]:size(1) -- for left padding
-        #if size == 1 then
-          #encoderInputs[word] = inputSeqs[samplenb][word]
-        #else
-          #encoderInputs[word+eosOffset][samplenb] = inputSeqs[samplenb][word]
-        #end
-      #end
-    #end
-    
-    #for samplenb = 1, #targetSeqs do
-      #trimmedEosToken = targetSeqs[samplenb]:sub(1,-2)
-      #for word = 1, trimmedEosToken:size(1) do
-        #if size == 1 then
-          #decoderInputs[word] = trimmedEosToken[word]
-        #else
-          #decoderInputs[word][samplenb] = trimmedEosToken[word]
-        #end
-      #end
-    #end
-    
-    #for samplenb = 1, #targetSeqs do
-      #trimmedGoToken = targetSeqs[samplenb]:sub(2,-1)
-      #for word = 1, trimmedGoToken:size(1) do
-        #if size == 1 then
-          #decoderTargets[word] = trimmedGoToken[word]
-        #else
-          #decoderTargets[word][samplenb] = trimmedGoToken[word]
-        #end
-      #end
-    #end
-
-    #return encoderInputs,decoderInputs,decoderTargets
-  #end
 
     
     def getSampleSize(self):
@@ -236,7 +188,7 @@ class TextData:
             print('Loading dataset from %s...' % (dirName))
             self.loadDataset(dirName)
             
-            pass # TODO
+            pass  # TODO
         
         assert self.padToken == 0
 
@@ -367,6 +319,28 @@ class TextData:
             self.id2word[id] = word
         
         return id
+
+    def printBatch(self, batch):
+        """Print a complete batch, useful for debugging
+        Args:
+            batch (Batch): a batch object
+        """
+        print('----- Print batch -----')
+        print('Input (should be inverted, as on the paper):')
+        for seq in batch.inputSeqs:
+            self.playASequence(seq)
+        print('Target:')
+        for seq in batch.targetSeqs:
+            self.playASequence(seq)
+
+    def playASequence(self, sequence):
+        """Print the words associated to a sequence
+        Args:
+            sequence (list<int>): the sentence to print
+        """
+        for w in sequence[:-1]:
+            print(self.id2word[w], end=' - ')
+        print(self.id2word[sequence[-1]])  # endl
 
     def playADialog(self):
         """Print a random dialogue from the dataset
