@@ -39,7 +39,6 @@ class Main:
     def __init__(self):
         """
         """
-        # TODO: Global cleanup: replace % with .format
         self.args = None
 
         self.textData = None  # Dataset
@@ -61,6 +60,7 @@ class Main:
         globalArgs = parser.add_argument_group('Global options')
         globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')  # TODO: Not present yet
         globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')  # TODO: Not present yet
+        globalArgs.add_argument('--createDataset', action='store_true', help='if present, the program will only generate the dataset from the corpus (no training/testing)')
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the modelDir directory (Warning: the model will be destroyed)')
         globalArgs.add_argument('--modelDir', type=str, default='save/model', help='directory to store/load checkpoints of the models')
         globalArgs.add_argument('--device', type=str, default=None, help='\'cpu\' or \'gpu\' (Warning: make sure you have enough free RAM, like +4GB), allow to choose which hardware use')  # TODO
@@ -68,9 +68,10 @@ class Main:
 
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
-        datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')
-        datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')
-        datasetArgs.add_argument('--maxLength', type=int, default=15, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
+        datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')  # Only one corpus right now
+        datasetArgs.add_argument('--datasetTag', type=str, default=None, help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
+        datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
+        datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
 
         # Network options
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
@@ -81,7 +82,7 @@ class Main:
         # Training options
         trainingArgs = parser.add_argument_group('Training options')
         trainingArgs.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
-        trainingArgs.add_argument('--saveEvery', type=int, default=50, help='nb of mini-batch step before creating a model checkpoint')
+        trainingArgs.add_argument('--saveEvery', type=int, default=1000, help='nb of mini-batch step before creating a model checkpoint')
         trainingArgs.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
         trainingArgs.add_argument('--learningRate', type=float, default=0.001, help='Learning rate')
 
@@ -94,7 +95,7 @@ class Main:
         """
         print('Welcome to DeepQA v0.1 !')
         print()
-        print('Tensorflow detected: v%s' % tf.__version__)
+        print('Tensorflow detected: v{}'.format(tf.__version__))
 
         # General initialisation
 
@@ -106,11 +107,23 @@ class Main:
             self.args.test = True
 
         self.textData = TextData(self.args)
+        # TODO: Add a debug mode which would randomly play some sentences
+        # TODO: For now, the model are trained for a specific dataset (because of the maxLength which define the
+        # vocabulary). Add a compatibility mode which allow to launch a model trained on a different vocabulary (
+        # remap the word2id/id2word variables).
+        if self.args.createDataset:
+            print('Dataset created! Thanks for using our program')
+            return  # No need to go futher
+
         with tf.device(self.getDevice()):
             self.model = Model(self.args, self.textData)
 
         # Saver/summaries  # TODO: Synchronize writer, saver and globStep (saving/loading from the same place) (with subfolder name created from args ??)
-        self.writer = tf.train.SummaryWriter("save/summary")  # Define a custom name (created from the args) ?
+        summariesRootDir = 'save/summaries/'
+        idRun = 0
+        while os.path.exists(summariesRootDir + str(idRun)):
+            idRun += 1
+        self.writer = tf.train.SummaryWriter(summariesRootDir + str(idRun))  # Define a custom name (created from the args) ?
         self.saver = tf.train.Saver()
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
@@ -152,7 +165,7 @@ class Main:
 
         for e in range(self.args.numEpochs):
 
-            print("--- Epoch %d/%d ; (lr=%f)" % (e, self.args.numEpochs, self.args.learningRate))
+            print("--- Epoch {}/{} ; (lr={})".format(e, self.args.numEpochs, self.args.learningRate))
             print()
 
             batches = self.textData.getBatches()  # TODO: Shuffle
@@ -169,12 +182,12 @@ class Main:
 
                 # Checkpoint
                 if globStep % self.args.saveEvery == 0:
-                    tqdm.write('Checkpoint reached: saving model...', end='')
+                    tqdm.write('Checkpoint reached: saving model...')
                     self.saver.save(sess, self.args.modelDest)  # Warning: self.args.modelDest is defined in managePreviousModel
                     tqdm.write('Model saved.')
             toc = time.perf_counter()
 
-            print("Epoch finished in: %2fs" % (toc-tic))  # TODO: Better time format
+            print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
 
     def mainTest(self, sess):
         """ Try predicting the sentences
@@ -194,9 +207,10 @@ class Main:
                 continue  # Back to the beginning, try again
             ops, feedDict = self.model.step(batch)
             output = sess.run(ops[0], feedDict)
-            answer = self.textData.deco2sentence(output)
+            answer, answerComplete = self.textData.deco2sentence(output)
 
             print('A:', answer)
+            print(answerComplete)
 
     def managePreviousModel(self, sess):
         """ Restore or reset the model
@@ -209,15 +223,15 @@ class Main:
         self.args.modelDest = os.path.join(self.args.modelDir, MODEL_NAME)  # Warning: Creation of new variable (accessible from train() for saving the model)
         if os.path.isfile(self.args.modelDest):
             if self.args.reset:
-                print('Reset: Destroying previous model at %s' % self.args.modelDest)
+                print('Reset: Destroying previous model at {}'.format(self.args.modelDest))
                 os.remove(self.args.modelDest)
                 os.remove(self.args.modelDest + '.meta')
             else:
-                print('Restoring previous model from %s' % self.args.modelDest)
+                print('Restoring previous model from {}'.format(self.args.modelDest))
                 self.saver.restore(sess, self.args.modelDest)
                 print('Model restored.')
         else:
-            print('No previous model found, starting from clean directory: %s' % self.args.modelDir)
+            print('No previous model found, starting from clean directory: {}'.format(self.args.modelDir))
             os.makedirs(self.args.modelDir)
 
     def getDevice(self):

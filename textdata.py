@@ -19,7 +19,7 @@
 Loads the dialogue corpus, builds the vocabulary
 """
 
-#import tensorflow as tf
+import numpy as np
 import nltk  # For tokenize
 from tqdm import tqdm  # Progress bar
 import pickle  # Saving the data
@@ -56,7 +56,7 @@ class TextData:
         # Path variables
         self.corpusDir = "data/cornell/"
         self.samplesDir = "data/samples/"
-        self.samplesName = "dataset.pkl"
+        self.samplesName = self._constructName()
         
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
@@ -76,6 +76,15 @@ class TextData:
         self.loadCorpus(self.samplesDir)
         
         pass
+
+    def _constructName(self):
+        """Return the name of the dataset that the program should use with the current parameters.
+        Computer from the base name, the given tag (self.args.datasetTag) and the sentence length
+        """
+        baseName = 'dataset'
+        if self.args.datasetTag:
+            baseName += '-' + self.args.datasetTag
+        return baseName + '-' + str(self.args.maxLength) + '.pkl'
 
     def makeLighter(self, ratioDataset):
         """Only keep a small fraction of the dataset, given by the ratio
@@ -125,6 +134,8 @@ class TextData:
         batch.maxInputSeqLen = self.args.maxLength
         batch.maxTargetSeqLen = self.args.maxLength
         for i in range(batchSize):
+            assert len(batch.inputSeqs[i]) < self.args.maxLength
+            assert len(batch.targetSeqs[i]) < self.args.maxLength
             if len(batch.inputSeqs[i]) > self.args.maxLength:
                 batch.inputSeqs[i] = batch.inputSeqs[i][0:self.args.maxLength]
             if len(batch.targetSeqs[i]) > self.args.maxLength:
@@ -202,10 +213,10 @@ class TextData:
             dirName (str): The directory where to load/save the model
         """
         datasetExist = False
-        if os.path.exists(dirName+self.samplesName):
+        if os.path.exists(os.path.join(dirName, self.samplesName)):
             datasetExist = True
         
-        if not datasetExist: # Fist time we load the database: creating all files
+        if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
             cornellData = CornellData(self.corpusDir)
@@ -215,13 +226,13 @@ class TextData:
             print('Saving dataset...')
             self.saveDataset(dirName)  # Saving tf samples
         else:
-            print('Loading dataset from %s...' % (dirName))
+            print('Loading dataset from {}...'.format(dirName))
             self.loadDataset(dirName)
         
         assert self.padToken == 0
         
         # Plot some stats:
-        print('Loaded: %d words, %d QA' % (len(self.word2id), len(self.trainingSamples)))
+        print('Loaded: {} words, {} QA'.format(len(self.word2id), len(self.trainingSamples)))
         
     def saveDataset(self, dirName):
         """Save samples to file
@@ -229,7 +240,7 @@ class TextData:
             dirName (str): The directory where to load/save the model
         """
         
-        with open(dirName + self.samplesName, 'wb') as handle:
+        with open(os.path.join(dirName, self.samplesName), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
                 "word2id": self.word2id,
                 "id2word": self.id2word,
@@ -242,7 +253,7 @@ class TextData:
         Args:
             dirName (str): The directory where to load the model
         """
-        with open(dirName + self.samplesName, 'rb') as handle:
+        with open(os.path.join(dirName, self.samplesName), 'rb') as handle:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data["word2id"]
             self.id2word = data["id2word"]
@@ -270,8 +281,6 @@ class TextData:
 
         # The dataset will be saved in the same order it has been extracted
 
-        # TODO: clear trainingSample after saving ?
-    
     def extractConversation(self, conversation):
         """Extract the sample lines from the conversations
         Args:
@@ -287,12 +296,13 @@ class TextData:
             targetWords = self.extractText(targetLine["text"], True)
             
             if not inputWords or not targetWords:  # Filter wrong samples (if one of the list is empty)
-                tqdm.write("Error with some sentences. Sample ignored.")
-                if inputWords:
-                    tqdm.write(inputLine["text"])
-                if targetWords:
-                    tqdm.write(targetLine["text"])
+                #tqdm.write("Error with some sentences. Sample ignored.")
+                pass
             else:
+                #print('---------------')
+                #self.playASequence(inputWords)
+                #self.playASequence(targetWords)
+
                 inputWords.reverse()  # Reverse inputs (and not outputs), little tricks as defined on the original seq2seq paper
                 
                 targetWords.insert(0, self.goToken)
@@ -310,15 +320,32 @@ class TextData:
             list<int>: the list of the word ids of the sentence
         """
         words = []
-        
-        # TODO !!!
-        # If answer: we only keep the last sentence
-        # If question: we only keep the first sentence
-        
-        tokens = nltk.word_tokenize(line)
-        for token in tokens: # TODO: Limit size (if sentence too long) ?
-            words.append(self.getWordId(token))  # Create the vocabulary and the training sentences
-        
+
+        # Extract sentences
+        sentencesToken = nltk.sent_tokenize(line)
+
+        # We add sentence by sentence until we reach the maximum length
+        for i in range(len(sentencesToken)):
+            # If question: we only keep the last sentences
+            # If answer: we only keep the first sentences
+            if not isTarget:
+                i = len(sentencesToken)-1 - i
+
+            tokens = nltk.word_tokenize(sentencesToken[i])
+
+            # If the total length is not too big, we still can add one more sentence
+            if len(words) + len(tokens) <= self.args.maxLength - 2*int(isTarget):  # For the target, we need to taken into account <go> and <eos>
+                tempWords = []
+                for token in tokens:
+                    tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
+
+                if isTarget:
+                    words = words + tempWords
+                else:
+                    words = tempWords + words
+            else:
+                break  # We reach the max length already
+
         return words
 
     def getWordId(self, word, create=True):
@@ -330,9 +357,9 @@ class TextData:
         Return:
             int: the id of the word created
         """
-        # TODO:
-        # - Ignore case !!
-        # - Keep only words with more than one occurrence ?
+        # TODO: Keep only words with more than one occurrence ?
+
+        word = word.lower()  # Ignore case
 
         # Get the id if the word already exist
         id = self.word2id.get(word, -1)
@@ -366,6 +393,9 @@ class TextData:
         Args:
             sequence (list<int>): the sentence to print
         """
+        if not sequence:
+            return
+
         for w in sequence[:-1]:
             print(self.id2word[w], end=' - ')
         print(self.id2word[sequence[-1]])  # endl
@@ -397,6 +427,7 @@ class TextData:
 
     def deco2sentence(self, decoderOutputs):
         """Decode the output of the decoder and return a human friendly sentence
+        decoderOutputs (list<np.array>):
         """
         words = []
 
@@ -404,11 +435,14 @@ class TextData:
             return max(enumerate(lst), key=lambda x: x[1])[0]  # TODO: Check validity
 
         # Choose the words with the highest prediction score
-        for out in decoderOutputs:
-            wordId = argmax(out)
+        lengthSentence = 0
+        for index, out in enumerate(decoderOutputs):  # For each predicted words
+            wordId = np.argmax(out)
             words.append(self.id2word[wordId])
+            if lengthSentence == 0 and (wordId == self.eosToken or index == len(decoderOutputs)-1):  # End of generated sentence
+                lengthSentence = index
 
-        return ' '.join(words)
+        return ' '.join(words[1:lengthSentence]), ' - '.join(words)  # Some cleanup: We remove the go token and everything after eos
 
     def playADialog(self):
         """Print a random dialogue from the dataset
