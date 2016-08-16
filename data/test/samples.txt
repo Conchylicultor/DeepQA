@@ -3,5 +3,12 @@ Hi!
 Are you conscious?
 How are you?
 What is your name ?
-Are you alive?
+Are you alive ?
+Luke, I am your father!
+What color is the sky?
+How old are you ?
+Can you say 'Hello' ?
+Can you say 'French fries' ?
+Will Google hire me ?
+Tell me the alphabet ?
 TODO: Add all question from the original paper

@@ -39,6 +39,7 @@ class Main:
     def __init__(self):
         """
         """
+        # TODO: Global cleanup: replace % with .format
         self.args = None
 
         self.textData = None  # Dataset
@@ -62,14 +63,14 @@ class Main:
         globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')  # TODO: Not present yet
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the modelDir directory (Warning: the model will be destroyed)')
         globalArgs.add_argument('--modelDir', type=str, default='save/model', help='directory to store/load checkpoints of the models')
-        globalArgs.add_argument('--device', type=str, default=None, help='\'cpu\' or \'gpu\' (make sure you have enough free RAM), allow to choose what type of hardware use')  # TODO
+        globalArgs.add_argument('--device', type=str, default=None, help='\'cpu\' or \'gpu\' (Warning: make sure you have enough free RAM, like +4GB), allow to choose which hardware use')  # TODO
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
 
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
         datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')
-        datasetArgs.add_argument('--maxLength', type=int, default=50, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
+        datasetArgs.add_argument('--maxLength', type=int, default=15, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
 
         # Network options
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
@@ -105,8 +106,8 @@ class Main:
             self.args.test = True
 
         self.textData = TextData(self.args)
-        # with tf.device("/cpu:0"):  # TODO: Try with caution (fill all the RAM) !!
-        self.model = Model(self.args, self.textData)
+        with tf.device(self.getDevice()):
+            self.model = Model(self.args, self.textData)
 
         # Saver/summaries  # TODO: Synchronize writer, saver and globStep (saving/loading from the same place) (with subfolder name created from args ??)
         self.writer = tf.train.SummaryWriter("save/summary")  # Define a custom name (created from the args) ?
@@ -142,8 +143,7 @@ class Main:
 
         self.textData.makeLighter(self.args.ratioDataset)  # Limit the number of training samples
 
-        mergedSummaries = tf.merge_all_summaries()
-        tf.initialize_variables(mergedSummaries).run()  # Useless ? Does this tensor need to be initialized ?
+        mergedSummaries = tf.merge_all_summaries()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
         globStep = 0
 
         # TODO: If restoring a model, also restoring globStep ? progression bar ? current batch ? continue summarize at same point
@@ -155,10 +155,10 @@ class Main:
             print("--- Epoch %d/%d ; (lr=%f)" % (e, self.args.numEpochs, self.args.learningRate))
             print()
 
-            batches = self.textData.getBatches(self.args)  # TODO: Shuffle
+            batches = self.textData.getBatches()  # TODO: Shuffle
             # TODO: Also update learning parameters eventually
 
-            tic = time.clock()  # TODO: or time.time()
+            tic = time.perf_counter()
             for nextBatch in tqdm(batches, desc="Training"):
                 # Training pass
                 ops, feedDict = self.model.step(nextBatch)
@@ -172,17 +172,31 @@ class Main:
                     tqdm.write('Checkpoint reached: saving model...', end='')
                     self.saver.save(sess, self.args.modelDest)  # Warning: self.args.modelDest is defined in managePreviousModel
                     tqdm.write('Model saved.')
-            toc = time.clock()
+            toc = time.perf_counter()
 
-            print("Epoch finished in: %2fs" % (toc-tic))
+            print("Epoch finished in: %2fs" % (toc-tic))  # TODO: Better time format
 
     def mainTest(self, sess):
         """ Try predicting the sentences
         Args:
             sess: The current running session
         """
-        print('Testing...')
-        pass
+        print('Testing: Launch interactive mode:')
+        print('')
+        print('Welcome to the interactive mode, here you can ask to Deep Q&A the sentence you want. Don\'t have high '
+              'expectation. Type \'exit\' or just press ENTER to quit the program. Have fun.')
+        question = None
+        while question != '' and question != ':q' and question != 'exit':
+            question = input('Q:')
+
+            batch = self.textData.sentence2enco(question)
+            if not batch:
+                continue  # Back to the beginning, try again
+            ops, feedDict = self.model.step(batch)
+            output = sess.run(ops[0], feedDict)
+            answer = self.textData.deco2sentence(output)
+
+            print('A:', answer)
 
     def managePreviousModel(self, sess):
         """ Restore or reset the model
@@ -197,13 +211,30 @@ class Main:
             if self.args.reset:
                 print('Reset: Destroying previous model at %s' % self.args.modelDest)
                 os.remove(self.args.modelDest)
+                os.remove(self.args.modelDest + '.meta')
             else:
                 print('Restoring previous model from %s' % self.args.modelDest)
                 self.saver.restore(sess, self.args.modelDest)
-                print("Model restored.")
+                print('Model restored.')
         else:
             print('No previous model found, starting from clean directory: %s' % self.args.modelDir)
             os.makedirs(self.args.modelDir)
+
+    def getDevice(self):
+        """ Parse the argument to decide on which device run the model
+        Return:
+            str: The name of the device on which run the program
+        """
+        if self.args.device == 'cpu':
+            return '"/cpu:0'
+        elif self.args.device == 'gpu':
+            return '/gpu:0'
+        elif self.args.device is None:  # No specified device (default)
+            return None
+        else:
+            print('Warning: Error in the device name: {}, use the default device'.format(self.args.device))
+            return None
+
 
 if __name__ == "__main__":
     program = Main()

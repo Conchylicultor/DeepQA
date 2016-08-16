@@ -50,6 +50,9 @@ class TextData:
         Args:
             args: parameters of the model
         """
+        # Model parameters
+        self.args = args
+
         # Path variables
         self.corpusDir = "data/cornell/"
         self.samplesDir = "data/samples/"
@@ -87,8 +90,75 @@ class TextData:
         """
         # print("Shuffling the dataset...")
         pass  # TODO
-    
-    def getBatches(self, args):
+
+    def _createBatch(self, samples):
+        """Create a single batch from the list of sample. The batch size is defined by the number of samples given.
+        Warning: This function should not make direct calls to args.batchSize !!!
+        Args:
+            samples (list<Obj>): a list of samples, each sample being on the form [input, target]
+        Return:
+            Batch: a batch object en
+        """
+        # TODO: Modify code to use copies instead of references (keep original database intact)
+
+        batch = Batch()
+        batchSize = len(samples)
+
+        # Create the batch tensor
+        for idSample in range(batchSize):
+            # Unpack the sample
+            sample = samples[idSample]
+            inputSeq = sample[0]
+            targetSeq = sample[1]
+
+            # Compute max length sequence
+            if len(inputSeq) > batch.maxInputSeqLen:
+                batch.maxInputSeqLen = len(inputSeq)
+            if len(targetSeq) > batch.maxTargetSeqLen:
+                batch.maxTargetSeqLen = len(targetSeq)
+
+            # Finalize
+            batch.inputSeqs.append(inputSeq)
+            batch.targetSeqs.append(targetSeq)
+
+        # Simple hack to truncate the sequence to the right length (TODO: Improve, the sentences too long should be filtered before (probably in the getBatches fct))
+        batch.maxInputSeqLen = self.args.maxLength
+        batch.maxTargetSeqLen = self.args.maxLength
+        for i in range(batchSize):
+            if len(batch.inputSeqs[i]) > self.args.maxLength:
+                batch.inputSeqs[i] = batch.inputSeqs[i][0:self.args.maxLength]
+            if len(batch.targetSeqs[i]) > self.args.maxLength:
+                batch.targetSeqs[i] = batch.targetSeqs[i][0:self.args.maxLength]
+
+        # Add padding & define weight
+        for i in range(batchSize):  # TODO: Left padding instead of right padding for the input ???
+            batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i])))
+            # TODO: Check that we don't modify the originals sequences (=+ vs .append)
+            batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]] * (batch.maxInputSeqLen  - len(batch.inputSeqs[i]))
+            batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i]))
+
+        # Simple hack to reshape the input (TODO: Improve)
+        inputSeqsT = []
+        targetSeqsT = []
+        weightsT = []  # Corrected orientation
+        for i in range(self.args.maxLength):
+            inputSeqT = []
+            targetSeqT = []
+            weightT = []
+            for j in range(batchSize):
+                inputSeqT.append(batch.inputSeqs[j][i])
+                targetSeqT.append(batch.targetSeqs[j][i])
+                weightT.append(batch.weights[j][i])
+            inputSeqsT.append(inputSeqT)
+            targetSeqsT.append(targetSeqT)
+            weightsT.append(weightT)
+        batch.inputSeqs = inputSeqsT
+        batch.targetSeqs = targetSeqsT
+        batch.weights = weightsT
+
+        return batch
+
+    def getBatches(self):
         """Prepare the batches for the current epoch
         Args:
             args (Obj): parameters were to extract batchSize (int) and maxLength (int)
@@ -98,65 +168,16 @@ class TextData:
         self.shuffle()
         
         batches = []
-        idSample = 0
-        
-        for _ in range(self.getSampleSize() // args.batchSize):
-            batch = Batch()
-            
-            # Create the batch tensor
-            for _ in range(args.batchSize):
-                # Unpack the sample
-                sample = self.trainingSamples[idSample]
-                inputSeq  = sample[0]
-                targetSeq = sample[1]
 
-                # Compute max length sequence
-                if len(inputSeq) > batch.maxInputSeqLen:
-                    batch.maxInputSeqLen = len(inputSeq)
-                if len(targetSeq) > batch.maxTargetSeqLen:
-                    batch.maxTargetSeqLen = len(targetSeq)
-                
-                # Finalize
-                batch.inputSeqs.append(inputSeq)
-                batch.targetSeqs.append(targetSeq)
-                idSample += 1
+        def genNextSamples():
+            """ Generator over the mini-batch training samples
+            """
+            for i in range(0, self.getSampleSize(), self.args.batchSize):
+                yield self.trainingSamples[i:min(i + self.args.batchSize, self.getSampleSize())]
 
-            # Simple hack to truncate the sequence to the right length (TODO: Improve)
-            batch.maxInputSeqLen = args.maxLength
-            batch.maxTargetSeqLen = args.maxLength
-            for i in range(args.batchSize):
-                if len(batch.inputSeqs[i]) > args.maxLength:
-                    batch.inputSeqs[i] = batch.inputSeqs[i][0:args.maxLength]
-                if len(batch.targetSeqs[i]) > args.maxLength:
-                    batch.targetSeqs[i] = batch.targetSeqs[i][0:args.maxLength]
-
-            # Add padding
-            for i in range(args.batchSize):  # TODO: Left padding instead of right padding for the input ???
-                batch.weights.append([1.0]*len(batch.targetSeqs[i]) + [0.0]*(batch.maxTargetSeqLen-len(batch.targetSeqs[i])))
-                batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]]*(batch.maxInputSeqLen -len(batch.inputSeqs[i]))  # TODO: Check that we don't modify the originals sequences (=+ vs .append)
-                batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]]*(batch.maxTargetSeqLen-len(batch.targetSeqs[i]))
-
-            # Simple hack to reshape the input (TODO: Improve)
-            inputSeqsT = []
-            targetSeqsT = []
-            weightsT = []  # Corrected orientation
-            for i in range(args.maxLength):
-                inputSeqT = []
-                targetSeqT = []
-                weightT = []
-                for j in range(args.batchSize):
-                    inputSeqT.append(batch.inputSeqs[j][i])
-                    targetSeqT.append(batch.targetSeqs[j][i])
-                    weightT.append(batch.weights[j][i])
-                inputSeqsT.append(inputSeqT)
-                targetSeqsT.append(targetSeqT)
-                weightsT.append(weightT)
-            batch.inputSeqs = inputSeqsT
-            batch.targetSeqs = targetSeqsT
-            batch.weights = weightsT
-
+        for samples in genNextSamples():
+            batch = self._createBatch(samples)
             #self.printBatch(batch)  # Debug
-
             batches.append(batch)
         return batches
 
@@ -237,10 +258,10 @@ class TextData:
         """Extract all data from the given vocabulary
         """
         # Add standard tokens
-        self.padToken = self.makeWordId("<pad>")  # Padding (Warning: first things to add > id=0 !!)
-        self.goToken = self.makeWordId("<go>")  # Start of sequence
-        self.eosToken = self.makeWordId("<eos>")  # End of sequence
-        self.unknownToken = self.makeWordId("<unknown>")  # Word dropped from vocabulary
+        self.padToken = self.getWordId("<pad>")  # Padding (Warning: first things to add > id=0 !!)
+        self.goToken = self.getWordId("<go>")  # Start of sequence
+        self.eosToken = self.getWordId("<eos>")  # End of sequence
+        self.unknownToken = self.getWordId("<unknown>")  # Word dropped from vocabulary
         
         # Preprocessing data
 
@@ -296,26 +317,34 @@ class TextData:
         
         tokens = nltk.word_tokenize(line)
         for token in tokens: # TODO: Limit size (if sentence too long) ?
-            words.append(self.makeWordId(token))  # Create the vocabulary and the training sentences
+            words.append(self.getWordId(token))  # Create the vocabulary and the training sentences
         
         return words
 
-    def makeWordId(self, word):
-        """Add a word to the dictionary
+    def getWordId(self, word, create=True):
+        """Get the id of the word (and add it to the dictionary if not existing). If the word does not exist and
+        create is set to False, the function will return the unknownToken value
         Args:
             word (str): word to add
+            create (Bool): if True and the word does not exist already, the world will be added
         Return:
             int: the id of the word created
         """
-        
+        # TODO:
+        # - Ignore case !!
+        # - Keep only words with more than one occurrence ?
+
         # Get the id if the word already exist
         id = self.word2id.get(word, -1)
         
         # If not, we create a new entry
         if id == -1:
-            id = len(self.word2id)
-            self.word2id[word] = id
-            self.id2word[id] = word
+            if create:
+                id = len(self.word2id)
+                self.word2id[word] = id
+                self.id2word[id] = word
+            else:
+                id = self.unknownToken
         
         return id
 
@@ -340,6 +369,46 @@ class TextData:
         for w in sequence[:-1]:
             print(self.id2word[w], end=' - ')
         print(self.id2word[sequence[-1]])  # endl
+
+    def sentence2enco(self, sentence):
+        """Encode a sequence and return a batch as an input for the model
+        Return:
+            Batch: a batch object containing the sentence, or none if something went wrong
+        """
+        if sentence == '':
+            return None
+
+        # First step: Divide the sentence in token
+        tokens = nltk.word_tokenize(sentence)
+        if len(tokens) > self.args.maxLength:
+            print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
+            return None
+
+        # Second step: Convert the token in word ids
+        wordIds = []
+        for token in tokens:
+            wordIds.append(self.getWordId(token, create=False))  # Create the vocabulary and the training sentences
+        self.playASequence(wordIds)
+
+        # Third step: creating the batch (add padding, reverse)
+        batch = self._createBatch([[wordIds, []]])  # Mono batch, no target output
+
+        return batch
+
+    def deco2sentence(self, decoderOutputs):
+        """Decode the output of the decoder and return a human friendly sentence
+        """
+        words = []
+
+        def argmax(lst):
+            return max(enumerate(lst), key=lambda x: x[1])[0]  # TODO: Check validity
+
+        # Choose the words with the highest prediction score
+        for out in decoderOutputs:
+            wordId = argmax(out)
+            words.append(self.id2word[wordId])
+
+        return ' '.join(words)
 
     def playADialog(self):
         """Print a random dialogue from the dataset

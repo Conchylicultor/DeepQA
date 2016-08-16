@@ -52,11 +52,10 @@ class Model:
         # Main operators
         self.lossFct = None
         self.optOp = None
-        self.output = None  # Output of the network (without the cost layer fct ?)
+        self.outputs = None  # Outputs of the network (without the cost layer fct ?)
 
         # Construct the graphs
         self.buildNetwork()
-        self.buildOptimizer()
 
     def buildNetwork(self):
         """ Create the computational graph
@@ -66,17 +65,18 @@ class Model:
         # TODO: Use buckets (better perfs)
 
         # Creation of the rnn cell
-        encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
-        encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values (WARNING: No dropout when testing !!!)
-        encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
+        with tf.variable_scope("chatbot_cell"):  # TODO: How to make this appear on the graph ?
+            encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
+            encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values (WARNING: No dropout when testing !!!)
+            encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
 
         # Network input (placeholders)
 
         # Batch size * sequence length * input dim (TODO: Variable length sequence !!)
-        with tf.name_scope('encoder'):
+        with tf.name_scope('placeholder_encoder'):
             self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLength)]
 
-        with tf.name_scope('decoder'):
+        with tf.name_scope('placeholder_decoder'):
             self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLength)]  # Same sentence length for input and output (Right ?)
             self.decoderTargets = [tf.placeholder(tf.int32,   [None, ], name='targets') for _ in range(self.args.maxLength)]
             self.decoderWeights = [tf.placeholder(tf.float32, [None, ], name='weights') for _ in range(self.args.maxLength)]
@@ -95,21 +95,24 @@ class Model:
             feed_previous=self.args.test  # When we test (self.args.test), we use previous output as next input (feed_previous)
         )
 
-        # Finally, we define the loss function
-        self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
-        self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost
+        # For testing only
+        if self.args.test:
+            self.outputs = decoderOutputs
 
+        # For training only
+        else:
+            # Finally, we define the loss function
+            self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
+            self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost
 
-    def buildOptimizer(self):
-        """ Initialize the optimizer
-        """
-        opt = tf.train.AdamOptimizer(
-            learning_rate=self.args.learningRate,
-            beta1=0.9, 
-            beta2=0.999, 
-            epsilon=1e-08
-        )
-        self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
+            # Initialize the optimizer
+            opt = tf.train.AdamOptimizer(
+                learning_rate=self.args.learningRate,
+                beta1=0.9,
+                beta2=0.999,
+                epsilon=1e-08
+            )
+            self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
     
     
     def step(self, batch):
@@ -117,22 +120,32 @@ class Model:
         Does not perform run on itself but just return the operators to do so. Those have then to be run
         Args:
             batch (Batch): Input data on testing mode, input and target on output mode
-            TODO: (forwardOnly/trainingMode ?) batch
         Return:
-            (ops), dict: A tuple of the (training, loss) operators with the associated feed dictionary
+            (ops), dict: A tuple of the (training, loss) operators or (outputs,) in testing mode with the associated feed dictionary
         """
         # TODO: Check with torch lua how the batches are created (encoderInput/Output)
 
         # Feed the dictionary
         feedDict = {}
-        for i in range(self.args.maxLength):
-            feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
-            feedDict[self.decoderInputs[i]]  = batch.targetSeqs[i]
-            feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
-            feedDict[self.decoderWeights[i]] = batch.weights[i]
+        ops = None
+
+        if not self.args.test:  # Training
+            for i in range(self.args.maxLength):
+                feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
+                feedDict[self.decoderInputs[i]]  = batch.targetSeqs[i]
+                feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
+                feedDict[self.decoderWeights[i]] = batch.weights[i]
+
+            ops = (self.optOp, self.lossFct)
+        else:  # Testing (batchSize == 1)
+            for i in range(self.args.maxLength):
+                feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
+            feedDict[self.decoderInputs[0]]  = [self.textData.goToken]
+
+            ops = (self.outputs,)
 
         # Return one pass operator
-        return (self.optOp, self.lossFct), feedDict
+        return ops, feedDict
 
     @staticmethod
     def attachDetailedSummaries(var, name):
