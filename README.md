@@ -22,4 +22,4 @@ The Cornell dataset is already included.
 
 ## Running
 
-Multiple trainings (`train.py`) (not complete), single training (`main.py`), production mode (`main.py --test`). Visualisation recorded on `save/summary/` (`tensorboard --logdir save/summary/`). Help and options with `python main.py -h`.
+Multiple trainings (`train.py`) (not complete), single training (`main.py`), production mode (`main.py --test` or `main.py --testInteractive`). Visualisation recorded on `save/summary/` (`tensorboard --logdir save/`). Help and options with `python main.py -h`.

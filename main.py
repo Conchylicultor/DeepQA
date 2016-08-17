@@ -22,6 +22,7 @@ Use python 3
 """
 
 import argparse  # Command line parsing
+import configparser  # Saving the models parameters
 import time  # Chronometer
 import os  # Files management
 from tqdm import tqdm  # Progress bar
@@ -39,14 +40,27 @@ class Main:
     def __init__(self):
         """
         """
+        # Model/dataset parameters
         self.args = None
 
+        # Task specific object
         self.textData = None  # Dataset
         self.model = None  # Sequence to sequence model
 
         # Tensorflow utilities for convenience saving/logging
         self.writer = None
         self.saver = None
+        self.modelDir = ''  # Where the model is saved
+        self.globStep = 0  # Represent the number of iteration for the current model
+
+        # Filename and directories constants
+        self.MODEL_DIR_BASE = 'save/model'
+        self.MODEL_NAME_BASE = 'model'
+        self.MODEL_EXT = '.ckpt'
+        self.CONFIG_FILENAME = 'params.ini'
+        self.TEST_DIR = 'data/test'
+        self.TEST_IN_NAME = 'samples.txt'
+        self.TEST_OUT_NAME = 'samples_predictions.txt'
 
     @staticmethod
     def parseArgs():
@@ -58,17 +72,18 @@ class Main:
 
         # Global options
         globalArgs = parser.add_argument_group('Global options')
-        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')  # TODO: Not present yet
-        globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')  # TODO: Not present yet
+        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')
+        globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')
         globalArgs.add_argument('--createDataset', action='store_true', help='if present, the program will only generate the dataset from the corpus (no training/testing)')
-        globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the modelDir directory (Warning: the model will be destroyed)')
-        globalArgs.add_argument('--modelDir', type=str, default='save/model', help='directory to store/load checkpoints of the models')
-        globalArgs.add_argument('--device', type=str, default=None, help='\'cpu\' or \'gpu\' (Warning: make sure you have enough free RAM, like +4GB), allow to choose which hardware use')  # TODO
+        globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the model directory (Warning: the model will be destroyed with all the folder content)')
+        globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')
+        globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
+        globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
 
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
-        datasetArgs.add_argument('--corpus', type=str, default='cornell', help='dataset to choose (Cornell)')  # Only one corpus right now
+        datasetArgs.add_argument('--corpus', type=str, default='cornell', help='corpus on which extract the dataset. Only one corpus available right now (Cornell)')
         datasetArgs.add_argument('--datasetTag', type=str, default=None, help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
@@ -106,6 +121,8 @@ class Main:
         if self.args.testInteractive:  # Training or testing mode
             self.args.test = True
 
+        self.loadModelParams()  # Update the self.modelDir and self.globStep, for now, not used when loading Model (but need to be called before _getSummaryName)
+
         self.textData = TextData(self.args)
         # TODO: Add a debug mode which would randomly play some sentences
         # TODO: For now, the model are trained for a specific dataset (because of the maxLength which define the
@@ -118,12 +135,8 @@ class Main:
         with tf.device(self.getDevice()):
             self.model = Model(self.args, self.textData)
 
-        # Saver/summaries  # TODO: Synchronize writer, saver and globStep (saving/loading from the same place) (with subfolder name created from args ??)
-        summariesRootDir = 'save/summaries/'
-        idRun = 0
-        while os.path.exists(summariesRootDir + str(idRun)):
-            idRun += 1
-        self.writer = tf.train.SummaryWriter(summariesRootDir + str(idRun))  # Define a custom name (created from the args) ?
+        # Saver/summaries
+        self.writer = tf.train.SummaryWriter(self._getSummaryName())
         self.saver = tf.train.Saver()
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
@@ -135,12 +148,16 @@ class Main:
         with tf.Session() as sess:
             print('Initialize variables...')
             tf.initialize_all_variables().run()
-            self.writer.add_graph(sess.graph)
 
             self.managePreviousModel(sess)  # Reload the model (eventually)
 
             if self.args.test:
-                self.mainTest(sess)  # TODO: test and testInteractive
+                if self.args.testInteractive:
+                    self.mainTestInteractive(sess)
+                else:
+                    print('Start predicting...')
+                    self.predictTestset(sess)
+                    print('Prediction done')
             else:
                 self.mainTrain(sess)
 
@@ -157,9 +174,10 @@ class Main:
         self.textData.makeLighter(self.args.ratioDataset)  # Limit the number of training samples
 
         mergedSummaries = tf.merge_all_summaries()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
-        globStep = 0
+        if self.globStep == 0:  # Not restoring from previous run
+            self.writer.add_graph(sess.graph)  # First time only
 
-        # TODO: If restoring a model, also restoring globStep ? progression bar ? current batch ? continue summarize at same point
+        # TODO: If restoring a model, also progression bar ? current batch ?
 
         print('Start training...')
 
@@ -177,20 +195,48 @@ class Main:
                 ops, feedDict = self.model.step(nextBatch)
                 assert len(ops) == 2  # training, loss
                 _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)  # TODO: Get the returned loss, return the prediction (testing mode only)
-                self.writer.add_summary(summary, globStep)
-                globStep += 1
+                self.writer.add_summary(summary, self.globStep)
+                self.globStep += 1
 
                 # Checkpoint
-                if globStep % self.args.saveEvery == 0:
-                    tqdm.write('Checkpoint reached: saving model...')
-                    self.saver.save(sess, self.args.modelDest)  # Warning: self.args.modelDest is defined in managePreviousModel
+                if self.globStep % self.args.saveEvery == 0:
+                    tqdm.write('Checkpoint reached: saving model (don\'t stop the run)...')
+                    self.saveModelParams()
+                    self.saver.save(sess, self._getModelName())
                     tqdm.write('Model saved.')
             toc = time.perf_counter()
 
             print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
 
-    def mainTest(self, sess):
-        """ Try predicting the sentences
+    def predictTestset(self, sess, saveName=None):
+        """ Try predicting the sentences from the samples.txt file
+        Args:
+            sess: The current running session
+            saveName: Name where to save the predictions
+        """
+        if not saveName:
+            saveName = os.path.join(self.TEST_DIR, self.TEST_OUT_NAME)
+
+        with open(os.path.join(self.TEST_DIR, self.TEST_OUT_NAME), 'r') as f:
+            lines = f.readlines()
+
+        with open(saveName, 'w') as f:
+            for line in lines:
+                question = line
+
+                batch = self.textData.sentence2enco(question)
+                if not batch:
+                    continue  # Back to the beginning, try again
+                ops, feedDict = self.model.step(batch)
+                output = sess.run(ops[0], feedDict)
+                answer, answerComplete = self.textData.deco2sentence(output)
+
+                f.write('Q: {}'.format(question))  # The endl is already included on the question string
+                f.write('A: {}\n'.format(answerComplete))
+                f.write('\n')
+
+    def mainTestInteractive(self, sess):
+        """ Try predicting the sentences that the user will enter in the console
         Args:
             sess: The current running session
         """
@@ -203,6 +249,7 @@ class Main:
             question = input('Q:')
 
             batch = self.textData.sentence2enco(question)
+            self.textData.playASequence(batch.inputSeqs[0])
             if not batch:
                 continue  # Back to the beginning, try again
             ops, feedDict = self.model.step(batch)
@@ -217,22 +264,81 @@ class Main:
         Args:
             sess: The current running session
         """
-        MODEL_NAME = 'model.ckpt'
+
+        # TODO: Check all possible cases!
 
         print('WARNING: ', end='')
-        self.args.modelDest = os.path.join(self.args.modelDir, MODEL_NAME)  # Warning: Creation of new variable (accessible from train() for saving the model)
-        if os.path.isfile(self.args.modelDest):
+
+        modelName = self._getModelName()
+
+        if os.listdir(self.modelDir):  # Warning: This will not work if we changed the keepAll option
             if self.args.reset:
-                print('Reset: Destroying previous model at {}'.format(self.args.modelDest))
-                os.remove(self.args.modelDest)
-                os.remove(self.args.modelDest + '.meta')
+                print('Reset: Destroying previous model at {}'.format(self.modelDir))  # Ask for confirmation ?
+
+                filelist = [os.path.join(self.modelDir, f) for f in os.listdir(self.modelDir)]
+                for f in filelist:
+                    print('Removing {}'.format(f))
+                    os.remove(f)
             else:
-                print('Restoring previous model from {}'.format(self.args.modelDest))
-                self.saver.restore(sess, self.args.modelDest)
+                print('Restoring previous model from {}'.format(modelName))
+                self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
                 print('Model restored.')
         else:
-            print('No previous model found, starting from clean directory: {}'.format(self.args.modelDir))
-            os.makedirs(self.args.modelDir)
+            print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
+            if not os.path.exists(self.modelDir):  # The directory can still contain previous models (keepAll changed) or could be empty (previous model halted before saving)
+                os.makedirs(self.modelDir)  # Make sure the directory exist (otherwise will crash when saving), useless because the summary object does this for us
+            else:
+                assert not os.listdir(self.modelDir)  # The directory should be empty (keepAll changed not supported yet) (TODO: Will always rise because of summary)
+
+    def loadModelParams(self):
+        """ Load the some values associated with the current model, like the current globStep value
+        For now, this function does not need to be called before loading the model (no parameters restored). However,
+        the modelDir name will be initialized here so it is required to call this function before managePreviousModel(),
+        _getModelName() or _getSummaryName()
+        Warning: if you modify this function, make sure the changes mirror saveModelParams
+        """
+        # Compute the current model path
+        self.modelDir = self.MODEL_DIR_BASE
+        if self.args.modelTag:
+            self.modelDir += '-' + self.args.modelTag
+
+        configName = os.path.join(self.modelDir, self.CONFIG_FILENAME)
+        if os.path.exists(configName):
+            config = configparser.ConfigParser()
+            config.read(configName)
+            self.globStep = config['General'].getint('globStep')
+
+    def saveModelParams(self):
+        """ Save the params of the model, like the current globStep value
+        Warning: if you modify this function, make sure the changes mirror loadModelParams
+        """
+        config = configparser.ConfigParser()
+        config['General'] = {}
+        config['General']['globStep'] = str(self.globStep)
+        with open(os.path.join(self.modelDir, self.CONFIG_FILENAME), 'w') as configFile:
+            config.write(configFile)
+
+        # TODO: Save all parameters (also datasetName ?) to keep a track of those
+
+    def _getSummaryName(self):
+        """ Parse the argument to decide were to save the summary, at the same place that the model
+        The folder could already contain logs if we restore the training, those will be merged
+        Return:
+            str: The path and name of the summary
+        """
+        return self.modelDir
+
+    def _getModelName(self):
+        """ Parse the argument to decide were to save/load the model
+        This function is called at each checkpoint and the first time the model is load. If keepAll option is set, the
+        globStep value will be included in the name.
+        Return:
+            str: The path and name were the model need to be saved
+        """
+        modelName = os.path.join(self.modelDir, self.MODEL_NAME_BASE)
+        if self.args.keepAll:  # We do not erase the previously saved model by including the current step on the name
+            modelName += '-' + str(self.globStep)
+        return modelName
 
     def getDevice(self):
         """ Parse the argument to decide on which device run the model

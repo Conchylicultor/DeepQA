@@ -134,8 +134,8 @@ class TextData:
         batch.maxInputSeqLen = self.args.maxLength
         batch.maxTargetSeqLen = self.args.maxLength
         for i in range(batchSize):
-            assert len(batch.inputSeqs[i]) < self.args.maxLength
-            assert len(batch.targetSeqs[i]) < self.args.maxLength
+            assert len(batch.inputSeqs[i]) <= self.args.maxLength
+            assert len(batch.targetSeqs[i]) <= self.args.maxLength  # Long sentences should have been filtered during the dataset creation
             if len(batch.inputSeqs[i]) > self.args.maxLength:
                 batch.inputSeqs[i] = batch.inputSeqs[i][0:self.args.maxLength]
             if len(batch.targetSeqs[i]) > self.args.maxLength:
@@ -418,7 +418,7 @@ class TextData:
         wordIds = []
         for token in tokens:
             wordIds.append(self.getWordId(token, create=False))  # Create the vocabulary and the training sentences
-        self.playASequence(wordIds)
+        #self.playASequence(wordIds)  # TODO: Not printed here but external (as for deco2sentence return 2 values)
 
         # Third step: creating the batch (add padding, reverse)
         batch = self._createBatch([[wordIds, []]])  # Mono batch, no target output
