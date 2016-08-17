@@ -260,42 +260,56 @@ class Main:
             print(answerComplete)
 
     def managePreviousModel(self, sess):
-        """ Restore or reset the model
+        """ Restore or reset the model, depending of the parameters
+        If the destination directory already contains some file, it will handle the conflict as following:
+         * If --reset is set, all present files will be removed (warning: no confirmation is asked) and the training
+         restart from scratch (globStep & cie reinitialized)
+         * Otherwise, it will depend of the directory content. If the directory contains:
+           * No model files (only summary logs): works as a reset (restart from scratch)
+           * Other model files, but modelName not found (surely keepAll option changed): raise error, the user should
+           decide by himself what to do
+           * The right model file (eventually some other): no problem, simply resume the training
+        In any case, the directory will exist as it has been created by the summary writer
         Args:
             sess: The current running session
         """
-
-        # TODO: Check all possible cases!
 
         print('WARNING: ', end='')
 
         modelName = self._getModelName()
 
-        if os.listdir(self.modelDir):  # Warning: This will not work if we changed the keepAll option
+        if os.listdir(self.modelDir):
             if self.args.reset:
-                print('Reset: Destroying previous model at {}'.format(self.modelDir))  # Ask for confirmation ?
-
-                filelist = [os.path.join(self.modelDir, f) for f in os.listdir(self.modelDir)]
-                for f in filelist:
-                    print('Removing {}'.format(f))
-                    os.remove(f)
-            else:
+                print('Reset: Destroying previous model at {}'.format(self.modelDir))
+            # Analysing directory content
+            elif os.path.exists(modelName):  # Restore the model
                 print('Restoring previous model from {}'.format(modelName))
                 self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
                 print('Model restored.')
+            elif [f for f in os.listdir(self.modelDir) if f.endswith(self.MODEL_EXT)]:
+                raise RuntimeError('Some models are already present in \'{}\'. You should check them first'.format(self.modelDir))
+            else:  # No other model to conflict with (probably summary files)
+                print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Ask for confirmation ?
+                self.args.reset = True
+
+            if self.args.reset:
+                fileList = [os.path.join(self.modelDir, f) for f in os.listdir(self.modelDir)]
+                for f in fileList:
+                    print('Removing {}'.format(f))
+                    os.remove(f)
+
+                self.globStep = 0  # Don't forget to reset the training if there was a previous model
+
         else:
             print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
-            if not os.path.exists(self.modelDir):  # The directory can still contain previous models (keepAll changed) or could be empty (previous model halted before saving)
-                os.makedirs(self.modelDir)  # Make sure the directory exist (otherwise will crash when saving), useless because the summary object does this for us
-            else:
-                assert not os.listdir(self.modelDir)  # The directory should be empty (keepAll changed not supported yet) (TODO: Will always rise because of summary)
 
     def loadModelParams(self):
         """ Load the some values associated with the current model, like the current globStep value
         For now, this function does not need to be called before loading the model (no parameters restored). However,
         the modelDir name will be initialized here so it is required to call this function before managePreviousModel(),
         _getModelName() or _getSummaryName()
-        Warning: if you modify this function, make sure the changes mirror saveModelParams
+        Warning: if you modify this function, make sure the changes mirror saveModelParams, also check if the parameters
+        should be reset in managePreviousModel
         """
         # Compute the current model path
         self.modelDir = self.MODEL_DIR_BASE
