@@ -110,7 +110,7 @@ class Main:
         """
         print('Welcome to DeepQA v0.1 !')
         print()
-        print('Tensorflow detected: v{}'.format(tf.__version__))
+        print('TensorFlow detected: v{}'.format(tf.__version__))
 
         # General initialisation
 
@@ -125,6 +125,7 @@ class Main:
 
         self.textData = TextData(self.args)
         # TODO: Add a debug mode which would randomly play some sentences
+        # TODO: Add a mode where we can force the input of the decoder // Try to visualize the predictions for each word of the vocabulary / decoder input
         # TODO: For now, the model are trained for a specific dataset (because of the maxLength which define the
         # vocabulary). Add a compatibility mode which allow to launch a model trained on a different vocabulary (
         # remap the word2id/id2word variables).
@@ -141,7 +142,8 @@ class Main:
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
-        # reloading the dataset)
+        # reloading the dataset). How to restore the seed after loading ??
+        # Also fix seed for random.shuffle (does it works globally for all files ?)
 
         # Running session
 
@@ -177,7 +179,7 @@ class Main:
         if self.globStep == 0:  # Not restoring from previous run
             self.writer.add_graph(sess.graph)  # First time only
 
-        # TODO: If restoring a model, also progression bar ? current batch ?
+        # If restoring a model, restore the progression bar ? and current batch ?
 
         print('Start training...')
 
@@ -186,7 +188,8 @@ class Main:
             print("--- Epoch {}/{} ; (lr={})".format(e, self.args.numEpochs, self.args.learningRate))
             print()
 
-            batches = self.textData.getBatches()  # TODO: Shuffle
+            batches = self.textData.getBatches()
+
             # TODO: Also update learning parameters eventually
 
             tic = time.perf_counter()
@@ -194,7 +197,7 @@ class Main:
                 # Training pass
                 ops, feedDict = self.model.step(nextBatch)
                 assert len(ops) == 2  # training, loss
-                _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)  # TODO: Get the returned loss, return the prediction (testing mode only)
+                _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
                 self.writer.add_summary(summary, self.globStep)
                 self.globStep += 1
 

@@ -25,6 +25,7 @@ from tqdm import tqdm  # Progress bar
 import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
+import random
 
 from cornelldata import CornellData
 
@@ -68,11 +69,6 @@ class TextData:
         self.word2id = {}
         self.id2word = {}  # For a rapid conversion
         
-        # Limits of the database (perfomances issues)
-        # Limit ??? self.maxExampleLen = options.maxExampleLen or 25
-        #self.linesLimit = #
-        # TODO: Add an option to cut the dataset (less size > faster)
-        
         self.loadCorpus(self.samplesDir)
         
         pass
@@ -97,8 +93,8 @@ class TextData:
     def shuffle(self):
         """Shuffle the training samples
         """
-        # print("Shuffling the dataset...")
-        pass  # TODO
+        print("Shuffling the dataset...")
+        random.shuffle(self.trainingSamples)
 
     def _createBatch(self, samples):
         """Create a single batch from the list of sample. The batch size is defined by the number of samples given.
@@ -108,7 +104,6 @@ class TextData:
         Return:
             Batch: a batch object en
         """
-        # TODO: Modify code to use copies instead of references (keep original database intact)
 
         batch = Batch()
         batchSize = len(samples)
@@ -130,7 +125,7 @@ class TextData:
             batch.inputSeqs.append(inputSeq)
             batch.targetSeqs.append(targetSeq)
 
-        # Simple hack to truncate the sequence to the right length (TODO: Improve, the sentences too long should be filtered before (probably in the getBatches fct))
+        # Simple hack to truncate the sequence to the right length
         batch.maxInputSeqLen = self.args.maxLength
         batch.maxTargetSeqLen = self.args.maxLength
         for i in range(batchSize):
@@ -144,7 +139,6 @@ class TextData:
         # Add padding & define weight
         for i in range(batchSize):  # TODO: Left padding instead of right padding for the input ???
             batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i])))
-            # TODO: Check that we don't modify the originals sequences (=+ vs .append)
             batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]] * (batch.maxInputSeqLen  - len(batch.inputSeqs[i]))
             batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i]))
 
@@ -299,10 +293,6 @@ class TextData:
                 #tqdm.write("Error with some sentences. Sample ignored.")
                 pass
             else:
-                #print('---------------')
-                #self.playASequence(inputWords)
-                #self.playASequence(targetWords)
-
                 inputWords.reverse()  # Reverse inputs (and not outputs), little tricks as defined on the original seq2seq paper
                 
                 targetWords.insert(0, self.goToken)
@@ -382,11 +372,15 @@ class TextData:
         """
         print('----- Print batch -----')
         print('Input (should be inverted, as on the paper):')
-        for seq in batch.inputSeqs:
-            self.playASequence(seq)
-        print('Target:')
-        for seq in batch.targetSeqs:
-            self.playASequence(seq)
+        for i in range(len(batch.inputSeqs[0])):  # Batch size
+            for j in range(len(batch.inputSeqs)):  # Sequence length
+                print(self.id2word[batch.inputSeqs[j][i]], end=' ')
+            print()
+        print('Targets:')
+        for i in range(len(batch.targetSeqs[0])):  # Batch size
+            for j in range(len(batch.targetSeqs)):  # Sequence length
+                print(self.id2word[batch.targetSeqs[j][i]] + '({})'.format(batch.weights[j][i]), end=' ')
+            print()
 
     def playASequence(self, sequence):
         """Print the words associated to a sequence
@@ -430,9 +424,6 @@ class TextData:
         decoderOutputs (list<np.array>):
         """
         words = []
-
-        def argmax(lst):
-            return max(enumerate(lst), key=lambda x: x[1])[0]  # TODO: Check validity
 
         # Choose the words with the highest prediction score
         lengthSentence = 0

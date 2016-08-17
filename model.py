@@ -72,9 +72,8 @@ class Model:
 
         # Network input (placeholders)
 
-        # Batch size * sequence length * input dim (TODO: Variable length sequence !!)
         with tf.name_scope('placeholder_encoder'):
-            self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLength)]
+            self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLength)]  # Batch size * sequence length * input dim
 
         with tf.name_scope('placeholder_decoder'):
             self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLength)]  # Same sentence length for input and output (Right ?)
@@ -103,7 +102,7 @@ class Model:
         else:
             # Finally, we define the loss function
             self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
-            self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost
+            self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost (TODO: Useless to have the detail because it's just one fct)
 
             # Initialize the optimizer
             opt = tf.train.AdamOptimizer(

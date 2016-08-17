@@ -42,7 +42,7 @@ class CornellData:
         self.lines = self.loadLines(dirName + "movie_lines.txt", MOVIE_LINES_FIELDS)
         self.conversations = self.loadConversations(dirName + "movie_conversations.txt", MOVIE_CONVERSATIONS_FIELDS)
         
-        # TODO: Cleaner program !!
+        # TODO: Cleaner program (merge copy-paste) !!
         
     def loadLines(self, fileName, fields):
         """
@@ -54,7 +54,7 @@ class CornellData:
         """
         lines = {}
         
-        with open(fileName, 'r', encoding='iso-8859-1') as f: # TODO: Solve Iso encoding pb !
+        with open(fileName, 'r', encoding='iso-8859-1') as f:  # TODO: Solve Iso encoding pb !
             for line in f:
                 values = line.split(" +++$+++ ")
 
@@ -77,7 +77,7 @@ class CornellData:
         """
         conversations = []
         
-        with open(fileName, 'r', encoding='iso-8859-1') as f: # TODO: Solve Iso encoding pb !
+        with open(fileName, 'r', encoding='iso-8859-1') as f:  # TODO: Solve Iso encoding pb !
             for line in f:
                 values = line.split(" +++$+++ ")
                 
