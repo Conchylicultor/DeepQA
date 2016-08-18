@@ -252,6 +252,7 @@ class Main:
             sess: The current running session
         """
         # TODO: If verbose mode, also show similar sentences from the training set with the same words (include in mainTest also)
+        # TODO: Also show the top 10 most likely predictions for each predicted output (when verbose mode)
 
         print('Testing: Launch interactive mode:')
         print('')

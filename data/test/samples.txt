@@ -11,4 +11,7 @@ Can you say 'Hello' ?
 Can you say 'French fries' ?
 Will Google hire me ?
 Tell me the alphabet ?
+How is John ?
+How is Oliver ?
+How is Laura ?
 TODO: Add all question from the original paper

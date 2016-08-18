@@ -67,7 +67,7 @@ class Model:
         # Creation of the rnn cell
         with tf.variable_scope("chatbot_cell"):  # TODO: How to make this appear on the graph ?
             encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
-            encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell)  # TODO: Custom values (WARNING: No dropout when testing !!!)
+            #encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=1.0)  # TODO: Custom values (WARNING: No dropout when testing !!!)
             encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
 
         # Network input (placeholders)
