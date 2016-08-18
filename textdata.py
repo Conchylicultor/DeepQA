@@ -35,11 +35,10 @@ class Batch:
     """Struct containing batches info
     """
     def __init__(self):
-        self.inputSeqs = []
+        self.encoderSeqs = []
+        self.decoderSeqs = []
         self.targetSeqs = []
         self.weights = []
-        self.maxInputSeqLen = 0  # Not used
-        self.maxTargetSeqLen = 0
 
 
 class TextData:
@@ -102,7 +101,10 @@ class TextData:
         random.shuffle(self.trainingSamples)
 
     def _createBatch(self, samples):
-        """Create a single batch from the list of sample. The batch size is defined by the number of samples given.
+        """Create a single batch from the list of sample. The batch size is automatically defined by the number of
+        samples given.
+        The inputs should already be inverted. The target should already have <go> and <eos> (TODO: Change: invert
+        here but not elsewhere (when loading and in sentence2encoder)).
         Warning: This function should not make direct calls to args.batchSize !!!
         Args:
             samples (list<Obj>): a list of samples, each sample being on the form [input, target]
@@ -114,55 +116,46 @@ class TextData:
         batchSize = len(samples)
 
         # Create the batch tensor
-        for idSample in range(batchSize):
-            # Unpack the sample
-            sample = samples[idSample]
-            inputSeq = sample[0]
-            targetSeq = sample[1]
-
-            # Compute max length sequence
-            if len(inputSeq) > batch.maxInputSeqLen:
-                batch.maxInputSeqLen = len(inputSeq)
-            if len(targetSeq) > batch.maxTargetSeqLen:
-                batch.maxTargetSeqLen = len(targetSeq)
-
-            # Finalize
-            batch.inputSeqs.append(inputSeq)
-            batch.targetSeqs.append(targetSeq)
-
-        # Simple hack to truncate the sequence to the right length
-        batch.maxInputSeqLen = self.args.maxLength
-        batch.maxTargetSeqLen = self.args.maxLength
         for i in range(batchSize):
-            assert len(batch.inputSeqs[i]) <= self.args.maxLength
-            assert len(batch.targetSeqs[i]) <= self.args.maxLength  # Long sentences should have been filtered during the dataset creation
-            if len(batch.inputSeqs[i]) > self.args.maxLength:
-                batch.inputSeqs[i] = batch.inputSeqs[i][0:self.args.maxLength]
-            if len(batch.targetSeqs[i]) > self.args.maxLength:
-                batch.targetSeqs[i] = batch.targetSeqs[i][0:self.args.maxLength]
+            # Unpack the sample
+            sample = samples[i]
+            batch.encoderSeqs.append(sample[0])
+            batch.decoderSeqs.append(sample[1])
+            batch.targetSeqs.append(sample[1][1:])  # Target shifted to the left (ignore the <go>)
 
-        # Add padding & define weight
-        for i in range(batchSize):  # TODO: Left padding instead of right padding for the input ???
-            batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i])))
-            batch.inputSeqs[i]  = batch.inputSeqs[i]  + [self.word2id["<pad>"]] * (batch.maxInputSeqLen  - len(batch.inputSeqs[i]))
-            batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id["<pad>"]] * (batch.maxTargetSeqLen - len(batch.targetSeqs[i]))
+            # TODO: Here reverse sentence and add <go> and <eos>
 
-        # Simple hack to reshape the input (TODO: Improve)
-        inputSeqsT = []
+            # Long sentences should have been filtered during the dataset creation
+            assert len(batch.encoderSeqs[i]) <= self.args.maxLength
+            assert len(batch.decoderSeqs[i]) <= self.args.maxLength
+
+            # Add padding & define weight
+            batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (self.args.maxLength - len(batch.targetSeqs[i])))
+            batch.encoderSeqs[i]   = [self.word2id["<pad>"]] * (self.args.maxLength  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
+            batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.word2id["<pad>"]] * (self.args.maxLength - len(batch.decoderSeqs[i]))
+            batch.targetSeqs[i]  = batch.targetSeqs[i]  + [self.word2id["<pad>"]] * (self.args.maxLength - len(batch.targetSeqs[i]))
+
+        # Simple hack to reshape the batch
+        encoderSeqsT = []
+        decoderSeqsT = []
         targetSeqsT = []
         weightsT = []  # Corrected orientation
         for i in range(self.args.maxLength):
-            inputSeqT = []
+            encoderSeqT = []
+            decoderSeqT = []
             targetSeqT = []
             weightT = []
             for j in range(batchSize):
-                inputSeqT.append(batch.inputSeqs[j][i])
+                encoderSeqT.append(batch.encoderSeqs[j][i])
+                decoderSeqT.append(batch.decoderSeqs[j][i])
                 targetSeqT.append(batch.targetSeqs[j][i])
                 weightT.append(batch.weights[j][i])
-            inputSeqsT.append(inputSeqT)
+            encoderSeqsT.append(encoderSeqT)
+            decoderSeqsT.append(decoderSeqT)
             targetSeqsT.append(targetSeqT)
             weightsT.append(weightT)
-        batch.inputSeqs = inputSeqsT
+        batch.encoderSeqs = encoderSeqsT
+        batch.decoderSeqs = decoderSeqsT
         batch.targetSeqs = targetSeqsT
         batch.weights = weightsT
 
@@ -170,8 +163,6 @@ class TextData:
 
     def getBatches(self):
         """Prepare the batches for the current epoch
-        Args:
-            args (Obj): parameters were to extract batchSize (int) and maxLength (int)
         Return:
             list<Batch>: Get a list of the batches for the next epoch
         """
@@ -187,10 +178,8 @@ class TextData:
 
         for samples in genNextSamples():
             batch = self._createBatch(samples)
-            #self.printBatch(batch)  # Debug
             batches.append(batch)
         return batches
-
     
     def getSampleSize(self):
         """Return the size of the dataset
@@ -257,9 +246,8 @@ class TextData:
             
             self.padToken = self.word2id["<pad>"]
             self.goToken = self.word2id["<go>"]
-            self.eosToken = self.word2id ["<eos>"]
-            self.unknownToken = self.word2id["<unknown>"] # Restore special words
-
+            self.eosToken = self.word2id["<eos>"]
+            self.unknownToken = self.word2id["<unknown>"]  # Restore special words
 
     def createCorpus(self, conversations):
         """Extract all data from the given vocabulary
@@ -288,11 +276,10 @@ class TextData:
             inputLine  = conversation["lines"][i]
             targetLine = conversation["lines"][i+1]
             
-            inputWords  = self.extractText(inputLine ["text"])
+            inputWords  = self.extractText(inputLine["text"])
             targetWords = self.extractText(targetLine["text"], True)
             
             if not inputWords or not targetWords:  # Filter wrong samples (if one of the list is empty)
-                #tqdm.write("Error with some sentences. Sample ignored.")
                 pass
             else:
                 inputWords.reverse()  # Reverse inputs (and not outputs), little tricks as defined on the original seq2seq paper
@@ -301,7 +288,6 @@ class TextData:
                 targetWords.append(self.eosToken)  # Add the end of string
 
                 self.trainingSamples.append([inputWords, targetWords])
-
 
     def extractText(self, line, isTarget=False):
         """Extract the words from a sample lines
@@ -373,12 +359,17 @@ class TextData:
             batch (Batch): a batch object
         """
         print('----- Print batch -----')
-        print('Input (should be inverted, as on the paper):')
-        for i in range(len(batch.inputSeqs[0])):  # Batch size
-            for j in range(len(batch.inputSeqs)):  # Sequence length
-                print(self.id2word[batch.inputSeqs[j][i]], end=' ')
+        print('Encode (should be inverted, as on the paper):')
+        for i in range(len(batch.encoderSeqs[0])):  # Batch size
+            for j in range(len(batch.encoderSeqs)):  # Sequence length
+                print(self.id2word[batch.encoderSeqs[j][i]], end=' ')
             print()
-        print('Targets:')
+        print('Decoder:')
+        for i in range(len(batch.decoderSeqs[0])):  # Batch size
+            for j in range(len(batch.decoderSeqs)):  # Sequence length
+                print(self.id2word[batch.decoderSeqs[j][i]], end=' ')
+            print()
+        print('Targets (same as decoder but without the <go>):')
         for i in range(len(batch.targetSeqs[0])):  # Batch size
             for j in range(len(batch.targetSeqs)):  # Sequence length
                 print(self.id2word[batch.targetSeqs[j][i]] + '({})'.format(batch.weights[j][i]), end=' ')
@@ -429,6 +420,7 @@ class TextData:
         wordIds = []
         for token in tokens:
             wordIds.append(self.getWordId(token, create=False))  # Create the vocabulary and the training sentences
+        wordIds.reverse()  # Don't for get to reverse the input as the training set
         #self.playASequence(wordIds)  # TODO: Not printed here but external (as for deco2sentence return 2 values)
 
         # Third step: creating the batch (add padding, reverse)

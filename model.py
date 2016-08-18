@@ -45,7 +45,7 @@ class Model:
 
         # Placeholders
         self.encoderInputs  = None
-        self.decoderInputs  = None  # Same that decoderTarget (used for training only) (TODO: Could we merge both ?)
+        self.decoderInputs  = None  # Same that decoderTarget plus the <go>
         self.decoderTargets = None
         self.decoderWeights = None  # Adjust the learning to the target sentence size
 
@@ -97,12 +97,13 @@ class Model:
         # For testing only
         if self.args.test:
             self.outputs = decoderOutputs
+            # TODO: Attach a summary to visualize the output
 
         # For training only
         else:
             # Finally, we define the loss function
             self.lossFct = tf.nn.seq2seq.sequence_loss(decoderOutputs, self.decoderTargets, self.decoderWeights, self.textData.getVocabularySize())
-            self.attachDetailedSummaries(self.lossFct, 'Loss_fct')  # Keep track of the cost (TODO: Useless to have the detail because it's just one fct)
+            tf.scalar_summary('loss', self.lossFct)  # Keep track of the cost
 
             # Initialize the optimizer
             opt = tf.train.AdamOptimizer(
@@ -112,7 +113,6 @@ class Model:
                 epsilon=1e-08
             )
             self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
-    
     
     def step(self, batch):
         """ Forward/training step operation.
@@ -130,35 +130,18 @@ class Model:
 
         if not self.args.test:  # Training
             for i in range(self.args.maxLength):
-                feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
-                feedDict[self.decoderInputs[i]]  = batch.targetSeqs[i]
+                feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
+                feedDict[self.decoderInputs[i]]  = batch.decoderSeqs[i]
                 feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
                 feedDict[self.decoderWeights[i]] = batch.weights[i]
 
             ops = (self.optOp, self.lossFct)
         else:  # Testing (batchSize == 1)
             for i in range(self.args.maxLength):
-                feedDict[self.encoderInputs[i]]  = batch.inputSeqs[i]
+                feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
             feedDict[self.decoderInputs[0]]  = [self.textData.goToken]
 
             ops = (self.outputs,)
 
         # Return one pass operator
         return ops, feedDict
-
-    @staticmethod
-    def attachDetailedSummaries(var, name):
-        """Attach a lot of summaries to a Tensor.
-        Args:
-            var (tf.tensor): tensor object for which attach the summary
-            name (str): name under which the summary will be generated
-        """
-        with tf.name_scope('summaries'):
-            mean = tf.reduce_mean(var)
-            tf.scalar_summary('mean/' + name, mean)
-            with tf.name_scope('stddev'):
-                stddev = tf.sqrt(tf.reduce_sum(tf.square(var - mean)))
-            tf.scalar_summary('sttdev/' + name, stddev)
-            tf.scalar_summary('max/' + name, tf.reduce_max(var))
-            tf.scalar_summary('min/' + name, tf.reduce_min(var))
-            tf.histogram_summary(name, var)

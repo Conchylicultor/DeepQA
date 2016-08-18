@@ -14,7 +14,7 @@ The program require the following dependecies (easy to install using pip):
  * python 3
  * tensorflow (tested with v0.9.0)
  * numpy
- * CUDA (for using gpu, see TensorFlow [installation page](https://www.tensorflow.org/versions/master/get_started/os_setup.html#optional-install-cuda-gpus-on-linux) for more details
+ * CUDA (for using gpu, see TensorFlow [installation page](https://www.tensorflow.org/versions/master/get_started/os_setup.html#optional-install-cuda-gpus-on-linux) for more details)
  * nltk (natural language toolkit for tokenized the sentences)
  * tqdm (for the nice progression bars)
 

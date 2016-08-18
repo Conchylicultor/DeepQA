@@ -224,7 +224,7 @@ class Main:
             lines = f.readlines()
 
         # Predicting for each model present in modelDir
-        for modelName in self._getModelList():
+        for modelName in sorted(self._getModelList()):  # TODO: Natural sorting
             print('Restoring previous model from {}'.format(modelName))
             self.saver.restore(sess, modelName)
             print('Testing...')
@@ -262,7 +262,7 @@ class Main:
             question = input('Q:')
 
             batch = self.textData.sentence2enco(question)
-            self.textData.playASequence(batch.inputSeqs[0])
+            print(self.textData.sequence2str(batch.encoderSeqs[0]))
             if not batch:
                 continue  # Back to the beginning, try again
             ops, feedDict = self.model.step(batch)
@@ -311,8 +311,6 @@ class Main:
                     print('Removing {}'.format(f))
                     os.remove(f)
 
-                self.globStep = 0  # Don't forget to reset the training if there was a previous model
-
         else:
             print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
 
@@ -334,11 +332,17 @@ class Main:
         if self.args.modelTag:
             self.modelDir += '-' + self.args.modelTag
 
+        # If there is a previous model, restore some parameters
         configName = os.path.join(self.modelDir, self.CONFIG_FILENAME)
-        if os.path.exists(configName):
+        if not self.args.reset and os.path.exists(configName):
             config = configparser.ConfigParser()
             config.read(configName)
             self.globStep = config['General'].getint('globStep')
+
+            maxLength = config['General'].getint('maxLength')
+            if self.args.maxLength != maxLength:
+                print('Warning: change maxLength to {} to match the present model'.format(maxLength))
+                self.args.maxLength = config['General'].getint('maxLength')
 
     def saveModelParams(self):
         """ Save the params of the model, like the current globStep value
@@ -346,7 +350,8 @@ class Main:
         """
         config = configparser.ConfigParser()
         config['General'] = {}
-        config['General']['globStep'] = str(self.globStep)
+        config['General']['globStep']  = str(self.globStep)
+        config['General']['maxLength'] = str(self.args.maxLength)
         with open(os.path.join(self.modelDir, self.CONFIG_FILENAME), 'w') as configFile:
             config.write(configFile)
 
