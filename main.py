@@ -58,9 +58,8 @@ class Main:
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
-        self.TEST_DIR = 'data/test'
-        self.TEST_IN_NAME = 'samples.txt'
-        self.TEST_OUT_NAME = 'samples_predictions.txt'
+        self.TEST_IN_NAME = 'data/test/samples.txt'
+        self.TEST_OUT_SUFFIX = '_predictions.txt'
 
     @staticmethod
     def parseArgs():
@@ -72,11 +71,13 @@ class Main:
 
         # Global options
         globalArgs = parser.add_argument_group('Global options')
-        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/')
+        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/ with the defined model(s)')
         globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')
         globalArgs.add_argument('--createDataset', action='store_true', help='if present, the program will only generate the dataset from the corpus (no training/testing)')
+        globalArgs.add_argument('--playDataset', type=int, nargs='?', const=10, default=None,  help='if set, the program  will randomly play some samples(can be use conjointly with createDataset if this is the only action you want to perform)')
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the model directory (Warning: the model will be destroyed with all the folder content)')
-        globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')
+        globalArgs.add_argument('--verbose', action='store_true', help='When testing, will plot the outputs at the same time they are computed')
+        globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
         globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
@@ -130,7 +131,7 @@ class Main:
         # vocabulary). Add a compatibility mode which allow to launch a model trained on a different vocabulary (
         # remap the word2id/id2word variables).
         if self.args.createDataset:
-            print('Dataset created! Thanks for using our program')
+            print('Dataset created! Thanks for using this program')
             return  # No need to go futher
 
         with tf.device(self.getDevice()):
@@ -138,7 +139,7 @@ class Main:
 
         # Saver/summaries
         self.writer = tf.train.SummaryWriter(self._getSummaryName())
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=200)  # Arbitrary limit ?
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
@@ -163,7 +164,7 @@ class Main:
             else:
                 self.mainTrain(sess)
 
-        print("The End! Thanks for using our program")
+        print("The End! Thanks for using this program")
 
     def mainTrain(self, sess):
         """ Training loop
@@ -205,44 +206,53 @@ class Main:
                 if self.globStep % self.args.saveEvery == 0:
                     tqdm.write('Checkpoint reached: saving model (don\'t stop the run)...')
                     self.saveModelParams()
-                    self.saver.save(sess, self._getModelName())
+                    self.saver.save(sess, self._getModelName())  # TODO: Put a limit size (ex: 3GB for the modelDir)
                     tqdm.write('Model saved.')
             toc = time.perf_counter()
 
             print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
 
-    def predictTestset(self, sess, saveName=None):
-        """ Try predicting the sentences from the samples.txt file
+    def predictTestset(self, sess):
+        """ Try predicting the sentences from the samples.txt file.
+        The sentences are saved on the modelDir under the same name
         Args:
             sess: The current running session
-            saveName: Name where to save the predictions
         """
-        if not saveName:
-            saveName = os.path.join(self.TEST_DIR, self.TEST_OUT_NAME)
 
-        with open(os.path.join(self.TEST_DIR, self.TEST_OUT_NAME), 'r') as f:
+        # Loading the file to predict
+        with open(os.path.join(self.TEST_IN_NAME), 'r') as f:
             lines = f.readlines()
 
-        with open(saveName, 'w') as f:
-            for line in lines:
-                question = line
+        # Predicting for each model present in modelDir
+        for modelName in self._getModelList():
+            print('Restoring previous model from {}'.format(modelName))
+            self.saver.restore(sess, modelName)
+            print('Testing...')
 
-                batch = self.textData.sentence2enco(question)
-                if not batch:
-                    continue  # Back to the beginning, try again
-                ops, feedDict = self.model.step(batch)
-                output = sess.run(ops[0], feedDict)
-                answer, answerComplete = self.textData.deco2sentence(output)
+            saveName = modelName[:-len(self.MODEL_EXT)] + self.TEST_OUT_SUFFIX  # We remove the model extension and add the prediction suffix
+            with open(saveName, 'w') as f:
+                for line in lines:
+                    question = line[:-1]  # Remove the endl character
 
-                f.write('Q: {}'.format(question))  # The endl is already included on the question string
-                f.write('A: {}\n'.format(answerComplete))
-                f.write('\n')
+                    batch = self.textData.sentence2enco(question)
+                    if not batch:
+                        continue  # Back to the beginning, try again
+                    ops, feedDict = self.model.step(batch)
+                    output = sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
+                    answer, answerComplete = self.textData.deco2sentence(output)
+
+                    predString = 'Q: {}\nA: {}\n\n'.format(question, answerComplete)
+                    if self.args.verbose:
+                        print(predString)
+                    f.write(predString)
 
     def mainTestInteractive(self, sess):
         """ Try predicting the sentences that the user will enter in the console
         Args:
             sess: The current running session
         """
+        # TODO: If verbose mode, also show similar sentences from the training set with the same words (include in mainTest also)
+
         print('Testing: Launch interactive mode:')
         print('')
         print('Welcome to the interactive mode, here you can ask to Deep Q&A the sentence you want. Don\'t have high '
@@ -289,7 +299,7 @@ class Main:
                 print('Restoring previous model from {}'.format(modelName))
                 self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
                 print('Model restored.')
-            elif [f for f in os.listdir(self.modelDir) if f.endswith(self.MODEL_EXT)]:
+            elif self._getModelList():
                 raise RuntimeError('Some models are already present in \'{}\'. You should check them first'.format(self.modelDir))
             else:  # No other model to conflict with (probably summary files)
                 print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Ask for confirmation ?
@@ -305,6 +315,11 @@ class Main:
 
         else:
             print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
+
+    def _getModelList(self):
+        """ Return the list of the model files inside the model directory
+        """
+        return [os.path.join(self.modelDir, f) for f in os.listdir(self.modelDir) if f.endswith(self.MODEL_EXT)]
 
     def loadModelParams(self):
         """ Load the some values associated with the current model, like the current globStep value
@@ -355,7 +370,7 @@ class Main:
         modelName = os.path.join(self.modelDir, self.MODEL_NAME_BASE)
         if self.args.keepAll:  # We do not erase the previously saved model by including the current step on the name
             modelName += '-' + str(self.globStep)
-        return modelName
+        return modelName + self.MODEL_EXT
 
     def getDevice(self):
         """ Parse the argument to decide on which device run the model

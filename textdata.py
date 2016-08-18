@@ -26,6 +26,7 @@ import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
 import random
+import warnings  # Should be temporary
 
 from cornelldata import CornellData
 
@@ -70,8 +71,12 @@ class TextData:
         self.id2word = {}  # For a rapid conversion
         
         self.loadCorpus(self.samplesDir)
-        
-        pass
+
+        # Plot some stats:
+        print('Loaded: {} words, {} QA'.format(len(self.word2id), len(self.trainingSamples)))
+
+        if self.args.playDataset:
+            self.playDataset()
 
     def _constructName(self):
         """Return the name of the dataset that the program should use with the current parameters.
@@ -225,9 +230,6 @@ class TextData:
         
         assert self.padToken == 0
         
-        # Plot some stats:
-        print('Loaded: {} words, {} QA'.format(len(self.word2id), len(self.trainingSamples)))
-        
     def saveDataset(self, dirName):
         """Save samples to file
         Args:
@@ -352,18 +354,18 @@ class TextData:
         word = word.lower()  # Ignore case
 
         # Get the id if the word already exist
-        id = self.word2id.get(word, -1)
+        wordId = self.word2id.get(word, -1)
         
         # If not, we create a new entry
-        if id == -1:
+        if wordId == -1:
             if create:
-                id = len(self.word2id)
-                self.word2id[word] = id
-                self.id2word[id] = word
+                wordId = len(self.word2id)
+                self.word2id[word] = wordId
+                self.id2word[wordId] = word
             else:
-                id = self.unknownToken
+                wordId = self.unknownToken
         
-        return id
+        return wordId
 
     def printBatch(self, batch):
         """Print a complete batch, useful for debugging
@@ -382,17 +384,32 @@ class TextData:
                 print(self.id2word[batch.targetSeqs[j][i]] + '({})'.format(batch.weights[j][i]), end=' ')
             print()
 
-    def playASequence(self, sequence):
+    def playASequence(self, sequence):  # TODO: Delete
         """Print the words associated to a sequence
         Args:
             sequence (list<int>): the sentence to print
         """
+        warnings.warn('playASequence deprecated. Should use sequence2str instead', DeprecationWarning)
+
         if not sequence:
             return
 
         for w in sequence[:-1]:
             print(self.id2word[w], end=' - ')
         print(self.id2word[sequence[-1]])  # endl
+
+    def sequence2str(self, sequence):
+        """Convert a list of integer into a human readable string
+        Args:
+            sequence (list<int>): the sentence to print
+        Return:
+            str: the sentence
+        """
+        # TODO: add formatting options (clean=(None|'target'|'input')) to remove the <go>, <eos> or reverse the list for the input
+
+        if not sequence:
+            return ''
+        return ' '.join([self.id2word[idx] for idx in sequence])
 
     def sentence2enco(self, sentence):
         """Encode a sequence and return a batch as an input for the model
@@ -435,7 +452,13 @@ class TextData:
 
         return ' '.join(words[1:lengthSentence]), ' - '.join(words)  # Some cleanup: We remove the go token and everything after eos
 
-    def playADialog(self):
+    def playDataset(self):
         """Print a random dialogue from the dataset
         """
+        print('Randomly play samples:')
+        for i in range(self.args.playDataset):
+            idSample = random.randint(0, len(self.trainingSamples))
+            print('Q:{}'.format(self.sequence2str(self.trainingSamples[idSample][0][::-1])))  # We reverse the input (without modifying the original)
+            print('A:{}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
+            print()
         pass
