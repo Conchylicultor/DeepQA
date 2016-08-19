@@ -14,4 +14,123 @@ Tell me the alphabet ?
 How is John ?
 How is Oliver ?
 How is Laura ?
-TODO: Add all question from the original paper
+Who is John ?
+Who is Oliver ?
+Who is Laura ?
+Hello
+Hello ?
+Hi ?
+Goodbye
+Goodbye!
+Goodbye john.
+...
+?
+!
+.
+Can you describe your best memory ?
+What is your best memory ?
+What is your worst memory ?
+What is cooking ?
+What is sleeping ?
+Who do you love ?
+Who do you hate ?
+My name is Etienne.
+1992.
+What happens ?
+July 20th.
+two plus two
+2+2 ?
+Where are you ?
+Where are you now ?
+What's your name ?
+When were you born ?
+What year
+Which year is it ?
+What time is it ?
+Hi john!
+Are you a man or a woman ?
+Are you a woman or a man ?
+Why are we here ?
+See you later.
+See you later...
+See you later ?
+My name is David. What is my name ?
+My name is John. What is my name ?
+Are you a leader or a follower ?
+I'm a leader.
+I'm a follower.
+Who is skywalker ?
+Who is the dude ?
+What's your favourite color ?
+Who is Bill Gates ?
+Who is Bill Clinton ?
+What do you think of Trump ?
+What do you think about global warning ?
+Is the moon landing a hoax ?
+Is the sky blue or black ?
+Does a cat have a tail ?
+Is a snail faster than a horse ?
+Is a horse faser than a snail ?
+Does a cat have a wing ?
+Can a cat fly ?
+Can a cat walk ?
+Can a cat swim ?
+Can a fish fly ?
+Can a fish walk ?
+Can a fish swim ?
+Can a bird fly ?
+Can a bird walk ?
+Can a bird swim ?
+How many legs does a cat have ?
+How many legs does a spider have ?
+How many legs does a centipede have ?
+What is the color of the sky ?
+What is the color of water ?
+What is the color of blood ?
+What is the usual color of a leaf ?
+What is the color of a yellow car ?
+How much is two plus two ?
+How much is ten minus two ?
+What is the purpose of life ?
+What is the purpose of living ?
+What is the purpose of existence ?
+Where are you now ?
+Is Linux better than Windows ?
+Is Windows better than Linux ?
+What is the purpose of being intelligent ?
+What is the purpose of emotions ?
+What is moral ?
+What is immoral ?
+What is morality ?
+What is altruism ?
+What is the definition of moral ?
+What is the definition of immoral ?
+What is the definition of morality ?
+What is the definition of altruism ?
+What is the definition of cool ?
+Do you believe in God ?
+ok ... so what is the definition of morality?
+tell me the definition of morality , i am quite upset now !
+look , i need help , i need to know more about morality ...
+seriously , what is morality ?
+why living has anything to do with morality ?
+what is your job ?
+okay , i need to know how should i behave morally ...
+is morality and ethics the same ?
+what are the things that i do to be immoral?
+give me some examples of moral actions...
+alright , morality ?
+what is integrity ?
+be moral !
+i really like our discussion on morality and ethics ...
+what do you like to talk about ?
+what do you think about tesla ?
+what do you think about bill gates ?
+What do you think about messi ?
+what do you think about cleopatra ?
+what do you think about england ?
+what do you think about england during the reign of elizabeth ?
+what do you do ?
+What is the deepest spot on the world ?
+Do you like Mexican food or Indian food ?
+Who are you crazy about ?

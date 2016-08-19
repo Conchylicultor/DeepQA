@@ -32,7 +32,7 @@ To visualize the computational graph and the cost with [TensorBoard](https://www
 
 Here are some preliminary results (uncensored). For performance issue, I limited the sentence length to 5. The network seems to learn correctly, but she's not really chatty:
 
-    Q: Hi (starting slowly)
+    Q: Hi
     A: Hi.
     
     Q: What is your name ?
@@ -78,6 +78,9 @@ Here is some case where it fails:
     
     Q: Can you say no ?
     A: No.
+    
+    Q: Two plus two
+    A: manny...
 
 To reproduce the results, first precompute the dataset with:
 

@@ -239,9 +239,9 @@ class Main:
                         continue  # Back to the beginning, try again
                     ops, feedDict = self.model.step(batch)
                     output = sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
-                    answer, answerComplete = self.textData.deco2sentence(output)
+                    answer = self.textData.deco2sentence(output)
 
-                    predString = 'Q: {}\nA: {}\n\n'.format(question, answerComplete)
+                    predString = 'Q: {}\nA: {}\n\n'.format(question, self.textData.sequence2str(answer, clean=True))
                     if self.args.verbose:
                         print(predString)
                     f.write(predString)
@@ -258,20 +258,24 @@ class Main:
         print('')
         print('Welcome to the interactive mode, here you can ask to Deep Q&A the sentence you want. Don\'t have high '
               'expectation. Type \'exit\' or just press ENTER to quit the program. Have fun.')
-        question = None
-        while question != '' and question != ':q' and question != 'exit':
+
+        while True:
             question = input('Q:')
+            if question == '' or question == 'exit':
+                break
 
             batch = self.textData.sentence2enco(question)
-            print(self.textData.sequence2str(batch.encoderSeqs[0]))
             if not batch:
+                print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
                 continue  # Back to the beginning, try again
+            print(self.textData.batchSeq2str(batch.encoderSeqs, clean=True, reverse=True))
             ops, feedDict = self.model.step(batch)
             output = sess.run(ops[0], feedDict)
-            answer, answerComplete = self.textData.deco2sentence(output)
+            answer = self.textData.deco2sentence(output)
 
-            print('A:', answer)
-            print(answerComplete)
+            print('A:', self.textData.sequence2str(answer, clean=True))
+            print(self.textData.sequence2str(answer))
+            print()
 
     def managePreviousModel(self, sess):
         """ Restore or reset the model, depending of the parameters

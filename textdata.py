@@ -389,39 +389,70 @@ class TextData:
             print(self.id2word[w], end=' - ')
         print(self.id2word[sequence[-1]])  # endl
 
-    def sequence2str(self, sequence):
+    def sequence2str(self, sequence, clean=False, reverse=False):
         """Convert a list of integer into a human readable string
         Args:
             sequence (list<int>): the sentence to print
+            clean (Bool): if set, remove the <go>, <pad> and <eos> tokens
+            reverse (Bool): for the input, option to restore the standard order
         Return:
             str: the sentence
         """
-        # TODO: add formatting options (clean=(None|'target'|'input')) to remove the <go>, <eos> or reverse the list for the input
+        # TODO: add formatting options to reverse the list for the input
 
         if not sequence:
             return ''
-        return ' '.join([self.id2word[idx] for idx in sequence])
+
+        if not clean:
+            return ' '.join([self.id2word[idx] for idx in sequence])
+
+        sentence = []
+        for wordId in sequence:
+            if wordId == self.eosToken:  # End of generated sentence
+                break
+            elif wordId != self.padToken and wordId != self.goToken:
+                sentence.append(self.id2word[wordId])
+
+        if reverse:  # Reverse means input so no <eos> (otherwise pb with previous early stop)
+            print('zerze')
+            sentence.reverse()
+
+        return ' '.join(sentence)
+
+    def batchSeq2str(self, batchSeq, seqId=0, **kwargs):
+        """Convert a list of integer into a human readable string.
+        The difference between the previous function is that on a batch object, the values have been reorganized as
+        batch instead of sentence.
+        Args:
+            batchSeq (list<list<int>>): the sentence(s) to print
+            seqId (int): the position of the sequence inside the batch
+        Return:
+            str: the sentence
+        """
+        sequence = []
+        for i in range(len(batchSeq)):  # Sequence length
+            sequence.append(batchSeq[i][seqId])
+        return self.sequence2str(sequence, kwargs)
 
     def sentence2enco(self, sentence):
         """Encode a sequence and return a batch as an input for the model
         Return:
             Batch: a batch object containing the sentence, or none if something went wrong
         """
+
         if sentence == '':
             return None
 
         # First step: Divide the sentence in token
         tokens = nltk.word_tokenize(sentence)
         if len(tokens) > self.args.maxLength:
-            print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
             return None
 
         # Second step: Convert the token in word ids
         wordIds = []
         for token in tokens:
             wordIds.append(self.getWordId(token, create=False))  # Create the vocabulary and the training sentences
-        wordIds.reverse()  # Don't for get to reverse the input as the training set
-        #self.playASequence(wordIds)  # TODO: Not printed here but external (as for deco2sentence return 2 values)
+        wordIds.reverse()  # Don't forget to reverse the input as the training set (TODO: Move that inside batch creation)
 
         # Third step: creating the batch (add padding, reverse)
         batch = self._createBatch([[wordIds, []]])  # Mono batch, no target output
@@ -432,17 +463,13 @@ class TextData:
         """Decode the output of the decoder and return a human friendly sentence
         decoderOutputs (list<np.array>):
         """
-        words = []
+        sequence = []
 
         # Choose the words with the highest prediction score
-        lengthSentence = 0
-        for index, out in enumerate(decoderOutputs):  # For each predicted words
-            wordId = np.argmax(out)
-            words.append(self.id2word[wordId])
-            if lengthSentence == 0 and (wordId == self.eosToken or index == len(decoderOutputs)-1):  # End of generated sentence
-                lengthSentence = index
+        for out in decoderOutputs:
+            sequence.append(np.argmax(out))  # Adding each predicted word ids
 
-        return ' '.join(words[1:lengthSentence]), ' - '.join(words)  # Some cleanup: We remove the go token and everything after eos
+        return sequence  # We return the raw sentence. Let the caller do some cleaning eventually
 
     def playDataset(self):
         """Print a random dialogue from the dataset
