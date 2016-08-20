@@ -256,7 +256,7 @@ class Main:
                     output = sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
                     answer = self.textData.deco2sentence(output)
 
-                    predString = 'Q: {}\nA: {}\n\n'.format(question, self.textData.sequence2str(answer, clean=True))
+                    predString = '{x[0]}{0}\n{x[1]}{1}\n\n'.format(question, self.textData.sequence2str(answer, clean=True), x=self.SENTENCES_PREFIX)
                     if self.args.verbose:
                         tqdm.write(predString)
                     f.write(predString)
@@ -276,7 +276,7 @@ class Main:
               'expectation. Type \'exit\' or just press ENTER to quit the program. Have fun.')
 
         while True:
-            question = input('Q:')
+            question = input(self.SENTENCES_PREFIX[0])
             if question == '' or question == 'exit':
                 break
 
@@ -289,7 +289,7 @@ class Main:
             output = sess.run(ops[0], feedDict)
             answer = self.textData.deco2sentence(output)
 
-            print('A:', self.textData.sequence2str(answer, clean=True))
+            print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
             print(self.textData.sequence2str(answer))
             print()
 
@@ -324,7 +324,7 @@ class Main:
                 print('Conflict with previous models.')
                 raise RuntimeError('Some models are already present in \'{}\'. You should check them first'.format(self.modelDir))
             else:  # No other model to conflict with (probably summary files)
-                print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Ask for confirmation ?
+                print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Warning: No confirmation asked
                 self.args.reset = True
 
             if self.args.reset:
@@ -398,6 +398,14 @@ class Main:
             print('numLayers: {}'.format(self.args.numLayers))
             print('embeddingSize: {}'.format(self.args.embeddingSize))
             print()
+
+        # For now, not arbitrary  independent maxLength between encoder and decoder
+        self.args.maxLengthEnco = self.args.maxLength
+        self.args.maxLengthDeco = self.args.maxLength + 2
+
+        if self.args.watsonMode:
+            self.SENTENCES_PREFIX.reverse()
+
 
     def saveModelParams(self):
         """ Save the params of the model, like the current globStep value

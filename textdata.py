@@ -126,43 +126,46 @@ class TextData:
             batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
 
             # Long sentences should have been filtered during the dataset creation
-            assert len(batch.encoderSeqs[i]) <= self.args.maxLength
-            assert len(batch.decoderSeqs[i]) <= self.args.maxLength
+            assert len(batch.encoderSeqs[i]) <= self.args.maxLengthEnco
+            assert len(batch.decoderSeqs[i]) <= self.args.maxLengthDeco
 
             # Add padding & define weight
-            batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (self.args.maxLength - len(batch.targetSeqs[i])))
-            batch.encoderSeqs[i]   = [self.word2id["<pad>"]] * (self.args.maxLength  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
-            batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.word2id["<pad>"]] * (self.args.maxLength - len(batch.decoderSeqs[i]))
-            batch.targetSeqs[i]  = batch.targetSeqs[i]  + [self.word2id["<pad>"]] * (self.args.maxLength - len(batch.targetSeqs[i]))
+            batch.encoderSeqs[i]   = [self.word2id["<pad>"]] * (self.args.maxLengthEnco  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
+            batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (self.args.maxLengthDeco - len(batch.targetSeqs[i])))
+            batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.word2id["<pad>"]] * (self.args.maxLengthDeco - len(batch.decoderSeqs[i]))
+            batch.targetSeqs[i]  = batch.targetSeqs[i]  + [self.word2id["<pad>"]] * (self.args.maxLengthDeco - len(batch.targetSeqs[i]))
 
         # Simple hack to reshape the batch
-        encoderSeqsT = []
+        encoderSeqsT = []  # Corrected orientation
+        for i in range(self.args.maxLengthEnco):
+            encoderSeqT = []
+            for j in range(batchSize):
+                encoderSeqT.append(batch.encoderSeqs[j][i])
+            encoderSeqsT.append(encoderSeqT)
+        batch.encoderSeqs = encoderSeqsT
+
         decoderSeqsT = []
         targetSeqsT = []
-        weightsT = []  # Corrected orientation
-        for i in range(self.args.maxLength):
-            encoderSeqT = []
+        weightsT = []
+        for i in range(self.args.maxLengthDeco):
             decoderSeqT = []
             targetSeqT = []
             weightT = []
             for j in range(batchSize):
-                encoderSeqT.append(batch.encoderSeqs[j][i])
                 decoderSeqT.append(batch.decoderSeqs[j][i])
                 targetSeqT.append(batch.targetSeqs[j][i])
                 weightT.append(batch.weights[j][i])
-            encoderSeqsT.append(encoderSeqT)
             decoderSeqsT.append(decoderSeqT)
             targetSeqsT.append(targetSeqT)
             weightsT.append(weightT)
-        batch.encoderSeqs = encoderSeqsT
         batch.decoderSeqs = decoderSeqsT
         batch.targetSeqs = targetSeqsT
         batch.weights = weightsT
 
-        # Debug
-        self.printBatch(batch)
-        print(self.sequence2str(samples[0][0]))
-        print(self.sequence2str(samples[0][1]))  # Check we did not modified the original sample
+        # # Debug
+        # self.printBatch(batch)  # Input inverted, padding should be correct
+        # print(self.sequence2str(samples[0][0]))
+        # print(self.sequence2str(samples[0][1]))  # Check we did not modified the original sample
 
         return batch
 
@@ -310,7 +313,7 @@ class TextData:
             tokens = nltk.word_tokenize(sentencesToken[i])
 
             # If the total length is not too big, we still can add one more sentence
-            if len(words) + len(tokens) <= self.args.maxLength - 2*int(isTarget):  # For the target, we need to taken into account <go> and <eos>
+            if len(words) + len(tokens) <= self.args.maxLength:
                 tempWords = []
                 for token in tokens:
                     tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
@@ -333,7 +336,7 @@ class TextData:
         Return:
             int: the id of the word created
         """
-        # TODO: Keep only words with more than one occurrence ?
+        # Should we Keep only words with more than one occurrence ?
 
         word = word.lower()  # Ignore case
 
@@ -449,7 +452,7 @@ class TextData:
         print('Randomly play samples:')
         for i in range(self.args.playDataset):
             idSample = random.randint(0, len(self.trainingSamples))
-            print('Q:{}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
-            print('A:{}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
+            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
+            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
             print()
         pass

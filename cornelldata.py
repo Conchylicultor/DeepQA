@@ -50,7 +50,7 @@ class CornellData:
             fileName (str): file to load
             field (set<str>): fields to extract
         Return:
-            dict<??>: the extracted fields for each line
+            dict<dict<str>>: the extracted fields for each line
         """
         lines = {}
         
@@ -73,7 +73,7 @@ class CornellData:
             fileName (str): file to load
             field (set<str>): fields to extract
         Return:
-            dict<??>: the extracted fields for each line
+            dict<dict<str>>: the extracted fields for each line
         """
         conversations = []
         

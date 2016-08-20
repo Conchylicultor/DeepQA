@@ -43,6 +43,12 @@ What !?
 What ?!!
 Oh!
 Really ?
+Yes.
+yes ?
+No!
+No.
+Love you.
+Love you too.
 No. It's John
 Anna did it.
 You're a liar!
@@ -213,3 +219,23 @@ what do you do ?
 What is the deepest spot on the world ?
 Do you like Mexican food or Indian food ?
 Who are you crazy about ?
+A man
+A women
+A dog
+A table
+A flower
+A man.
+A women.
+A dog.
+A table.
+A flower.
+One
+Two
+Three
+Four
+Five
+The end
+Yes it is.
+Yes it was.
+Indeed.
+More

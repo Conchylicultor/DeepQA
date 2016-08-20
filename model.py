@@ -52,7 +52,7 @@ class Model:
         # Main operators
         self.lossFct = None
         self.optOp = None
-        self.outputs = None  # Outputs of the network (without the cost layer fct ?)
+        self.outputs = None  # Outputs of the network, list of probability for each words
 
         # Construct the graphs
         self.buildNetwork()
@@ -73,12 +73,12 @@ class Model:
         # Network input (placeholders)
 
         with tf.name_scope('placeholder_encoder'):
-            self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLength)]  # Batch size * sequence length * input dim
+            self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLengthEnco)]  # Batch size * sequence length * input dim
 
         with tf.name_scope('placeholder_decoder'):
-            self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLength)]  # Same sentence length for input and output (Right ?)
-            self.decoderTargets = [tf.placeholder(tf.int32,   [None, ], name='targets') for _ in range(self.args.maxLength)]
-            self.decoderWeights = [tf.placeholder(tf.float32, [None, ], name='weights') for _ in range(self.args.maxLength)]
+            self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLengthDeco)]  # Same sentence length for input and output (Right ?)
+            self.decoderTargets = [tf.placeholder(tf.int32,   [None, ], name='targets') for _ in range(self.args.maxLengthDeco)]
+            self.decoderWeights = [tf.placeholder(tf.float32, [None, ], name='weights') for _ in range(self.args.maxLengthDeco)]
 
         # Define the network
         # Here we use an embedding model, it takes integer as input and convert them into word vector for
@@ -112,7 +112,7 @@ class Model:
                 beta2=0.999,
                 epsilon=1e-08
             )
-            self.optOp = opt.minimize(self.lossFct)  #, model.getVariables())
+            self.optOp = opt.minimize(self.lossFct)
     
     def step(self, batch):
         """ Forward/training step operation.
@@ -122,22 +122,22 @@ class Model:
         Return:
             (ops), dict: A tuple of the (training, loss) operators or (outputs,) in testing mode with the associated feed dictionary
         """
-        # TODO: Check with torch lua how the batches are created (encoderInput/Output)
 
         # Feed the dictionary
         feedDict = {}
         ops = None
 
         if not self.args.test:  # Training
-            for i in range(self.args.maxLength):
+            for i in range(self.args.maxLengthEnco):
                 feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
+            for i in range(self.args.maxLengthDeco):
                 feedDict[self.decoderInputs[i]]  = batch.decoderSeqs[i]
                 feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
                 feedDict[self.decoderWeights[i]] = batch.weights[i]
 
             ops = (self.optOp, self.lossFct)
         else:  # Testing (batchSize == 1)
-            for i in range(self.args.maxLength):
+            for i in range(self.args.maxLengthEnco):
                 feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
             feedDict[self.decoderInputs[0]]  = [self.textData.goToken]
 
