@@ -119,11 +119,9 @@ class TextData:
         for i in range(batchSize):
             # Unpack the sample
             sample = samples[i]
-            batch.encoderSeqs.append(sample[0])
-            batch.decoderSeqs.append(sample[1])
-            batch.targetSeqs.append(sample[1][1:])  # Target shifted to the left (ignore the <go>)
-
-            # TODO: Here reverse sentence and add <go> and <eos>
+            batch.encoderSeqs.append(list(reversed(sample[0])))  # Reverse inputs (and not outputs), little trick as defined on the original seq2seq paper
+            batch.decoderSeqs.append([self.goToken] + sample[1] + [self.eosToken])  # Add the <go> and <eos> tokens
+            batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
 
             # Long sentences should have been filtered during the dataset creation
             assert len(batch.encoderSeqs[i]) <= self.args.maxLength
@@ -279,14 +277,7 @@ class TextData:
             inputWords  = self.extractText(inputLine["text"])
             targetWords = self.extractText(targetLine["text"], True)
             
-            if not inputWords or not targetWords:  # Filter wrong samples (if one of the list is empty)
-                pass
-            else:
-                inputWords.reverse()  # Reverse inputs (and not outputs), little tricks as defined on the original seq2seq paper
-                
-                targetWords.insert(0, self.goToken)
-                targetWords.append(self.eosToken)  # Add the end of string
-
+            if inputWords and targetWords:  # Filter wrong samples (if one of the list is empty)
                 self.trainingSamples.append([inputWords, targetWords])
 
     def extractText(self, line, isTarget=False):
@@ -363,7 +354,7 @@ class TextData:
             print('Encoder: {}'.format(self.batchSeq2str(batch.encoderSeqs, seqId=i)))
             print('Decoder: {}'.format(self.batchSeq2str(batch.decoderSeqs, seqId=i)))
             print('Targets: {}'.format(self.batchSeq2str(batch.targetSeqs, seqId=i)))
-            print('Weights: {}'.format(' '.join(batch.weights)))
+            print('Weights: {}'.format(' '.join([str(weight) for weight in [batchWeight[i] for batchWeight in batch.weights]])))
 
     def sequence2str(self, sequence, clean=False, reverse=False):
         """Convert a list of integer into a human readable string
@@ -427,7 +418,6 @@ class TextData:
         wordIds = []
         for token in tokens:
             wordIds.append(self.getWordId(token, create=False))  # Create the vocabulary and the training sentences
-        wordIds.reverse()  # Don't forget to reverse the input as the training set (TODO: Move that inside batch creation)
 
         # Third step: creating the batch (add padding, reverse)
         batch = self._createBatch([[wordIds, []]])  # Mono batch, no target output
@@ -452,7 +442,7 @@ class TextData:
         print('Randomly play samples:')
         for i in range(self.args.playDataset):
             idSample = random.randint(0, len(self.trainingSamples))
-            print('Q:{}'.format(self.sequence2str(self.trainingSamples[idSample][0][::-1])))  # We reverse the input (without modifying the original)
+            print('Q:{}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
             print('A:{}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
             print()
         pass

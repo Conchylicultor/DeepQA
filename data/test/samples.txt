@@ -15,6 +15,7 @@ How do you say hello in french?
 Speak french.
 Bonjour.
 Bonjour ?
+Good night.
 Are you ok ?
 Will Google hire me ?
 Tell me the alphabet ?
@@ -37,6 +38,7 @@ Goodbye!
 Goodbye john.
 How ?
 Why ?
+Why not ?
 What !?
 What ?!!
 Oh!

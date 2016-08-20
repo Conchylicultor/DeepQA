@@ -361,7 +361,7 @@ class Main:
 
         # If there is a previous model, restore some parameters
         configName = os.path.join(self.modelDir, self.CONFIG_FILENAME)
-        if not self.args.reset and os.path.exists(configName):
+        if not self.args.reset and not self.args.createDataset and os.path.exists(configName):
             # Loading
             config = configparser.ConfigParser()
             config.read(configName)
