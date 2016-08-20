@@ -32,7 +32,7 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 
 ## Results
 
-Here are some preliminary results (uncensored). For performance issue, I limited the sentence length to 5. The network seems to learn correctly, but it's not really chatty:
+To quickly get some results, the best way is to reduce the sentence length to 5. The network seems to learn correctly, but it's not really chatty:
 
     Q: Hi
     A: Hi.
@@ -98,3 +98,28 @@ The `--modelTag` option is optional (it's just to avoid conflict between the dif
     python main.py --testInteractive --modelTag first-try
 
 The results are shown after 20000 iterations. With my state-of-the-art GeForce GT 740M, it took about 2h to train the model with the previous arguments, which is still relatively fast.
+
+With longer sentences, the network is much slower to train. After 150000 iterations with maxLength=10, the network still mainly gives garbadge answers (basically answer all open ended questions by 'I don't know'). Among those, we can still find some interesting (or creepy) ones:
+
+    Q: What is the purpose of being intelligent ?
+    A: The man are obsolete.
+    
+    Q: What is immoral ?
+    A: The truth.
+    
+    Q: What is morality ?
+    A: The worst.
+    
+    Q: How many legs does a cat have ?
+    A: Four.
+    
+    Q: How many legs does a spider have ?
+    A: Four.
+    
+    Q: I really like our discussion on morality and ethics...
+    A: You're not going anywhere.
+    
+    Q: !
+    A: I'm not going to die !
+
+Still not perfect but it seems to go in the right direction.
