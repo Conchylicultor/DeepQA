@@ -23,7 +23,7 @@ Use python 3
 
 import argparse  # Command line parsing
 import configparser  # Saving the models parameters
-import time  # Chronometer
+import datetime  # Chronometer
 import os  # Files management
 from tqdm import tqdm  # Progress bar
 import tensorflow as tf
@@ -199,7 +199,7 @@ class Main:
 
                 # TODO: Also update learning parameters eventually
 
-                tic = time.perf_counter()
+                tic = datetime.datetime.now()
                 for nextBatch in tqdm(batches, desc="Training"):
                     # Training pass
                     ops, feedDict = self.model.step(nextBatch)
@@ -212,9 +212,9 @@ class Main:
                     if self.globStep % self.args.saveEvery == 0:
                         self._saveSession(sess)
 
-                toc = time.perf_counter()
+                toc = datetime.datetime.now()
 
-                print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
+                print("Epoch finished in {}".format(toc-tic))  # Warning: Will overflow if an epoch takes more than 24 hours, and the output isn't really nicer
         except (KeyboardInterrupt, SystemExit):  # If the user press Ctrl+C while testing progress
             print('Interruption detected, exiting the program...')
 
