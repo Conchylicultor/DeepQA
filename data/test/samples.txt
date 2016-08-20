@@ -9,20 +9,47 @@ What color is the sky?
 How old are you ?
 Can you say 'Hello' ?
 Can you say 'French fries' ?
+Can you say Hello ?
+Can you say French fries ?
+How do you say hello in french?
+Speak french.
+Bonjour.
+Bonjour ?
+Are you ok ?
 Will Google hire me ?
 Tell me the alphabet ?
+Tell me the alphabet, please ?
+What is the first letter of the alphabet ?
+What is a letter of the alphabet ?
 How is John ?
 How is Oliver ?
 How is Laura ?
+How is Jenny ?
 Who is John ?
 Who is Oliver ?
 Who is Laura ?
+Who is Jenny ?
 Hello
 Hello ?
 Hi ?
 Goodbye
 Goodbye!
 Goodbye john.
+How ?
+Why ?
+What !?
+What ?!!
+Oh!
+Really ?
+No. It's John
+Anna did it.
+You're a liar!
+You're a liar.
+nice
+nice.
+Nice!
+I live in Nice.
+So rude!
 ...
 ?
 !
@@ -35,8 +62,24 @@ What is sleeping ?
 Who do you love ?
 Who do you hate ?
 My name is Etienne.
+what do you think about bill gates ?
+what happens if machines can think ?
+what is the greatest novel every written ?
+have you hurt anyone ?
+1992
 1992.
+1994
+1994.
+2000
+2000.
+2001
+2001.
+2011
+2011.
 What happens ?
+What happened in 1992 ?
+What happened in 2001 ?
+When was it ?
 July 20th.
 two plus two
 2+2 ?
@@ -45,6 +88,11 @@ Where are you now ?
 What's your name ?
 When were you born ?
 What year
+What year.
+What year!
+What year?
+Which year
+Which year?
 Which year is it ?
 What time is it ?
 Hi john!
@@ -59,6 +107,7 @@ My name is John. What is my name ?
 Are you a leader or a follower ?
 I'm a leader.
 I'm a follower.
+I hate you
 Who is skywalker ?
 Who is the dude ?
 What's your favourite color ?
@@ -81,6 +130,34 @@ Can a fish swim ?
 Can a bird fly ?
 Can a bird walk ?
 Can a bird swim ?
+Tell me something
+Tell me something.
+Tell me something!
+Tell me a story
+Tell me a story, please.
+Once upon a time...
+How much is two plus two ?
+Do you prefer blue food or green food ?
+Do you prefer football or soccer ?
+What do you need to play soccer ?
+What do you need to play handball ?
+one, two, three
+one two three
+1 2 3
+1
+1 2
+1 2 3 ...
+1 2 3 ?
+A, B, C
+A, B, C,...
+a b c
+1, 2, 3
+And ?
+Continue...
+And ... action!
+Action!
+Let the movie begin
+Let the movie begin!
 How many legs does a cat have ?
 How many legs does a spider have ?
 How many legs does a centipede have ?

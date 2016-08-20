@@ -58,6 +58,7 @@ class Main:
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
+        self.CONFIG_VERSION = '0.1'
         self.TEST_IN_NAME = 'data/test/samples.txt'
         self.TEST_OUT_SUFFIX = '_predictions.txt'
 
@@ -89,11 +90,11 @@ class Main:
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
 
-        # Network options
+        # Network options (Warning: if modifying something here, also make the change on save/loadParams() )
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
         nnArgs.add_argument('--hiddenSize', type=int, default=256, help='number of hidden units in each RNN cell')
         nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
-        nnArgs.add_argument('--embeddingSize', type=int, default=25, help='embedding size of the word representation')
+        nnArgs.add_argument('--embeddingSize', type=int, default=32, help='embedding size of the word representation')
 
         # Training options
         trainingArgs = parser.add_argument_group('Training options')
@@ -103,7 +104,6 @@ class Main:
         trainingArgs.add_argument('--learningRate', type=float, default=0.001, help='Learning rate')
 
         return parser.parse_args()
-
 
     def main(self):
         """
@@ -125,14 +125,14 @@ class Main:
         self.loadModelParams()  # Update the self.modelDir and self.globStep, for now, not used when loading Model (but need to be called before _getSummaryName)
 
         self.textData = TextData(self.args)
-        # TODO: Add a debug mode which would randomly play some sentences
-        # TODO: Add a mode where we can force the input of the decoder // Try to visualize the predictions for each word of the vocabulary / decoder input
+        # TODO: Add a mode where we can force the input of the decoder // Try to visualize the predictions for
+        # each word of the vocabulary / decoder input
         # TODO: For now, the model are trained for a specific dataset (because of the maxLength which define the
         # vocabulary). Add a compatibility mode which allow to launch a model trained on a different vocabulary (
         # remap the word2id/id2word variables).
         if self.args.createDataset:
             print('Dataset created! Thanks for using this program')
-            return  # No need to go futher
+            return  # No need to go further
 
         with tf.device(self.getDevice()):
             self.model = Model(self.args, self.textData)
@@ -155,6 +155,9 @@ class Main:
             self.managePreviousModel(sess)  # Reload the model (eventually)
 
             if self.args.test:
+                # TODO: For testing, add a mode where instead taking the most likely output after the <go> token,
+                # takes the second or third so it generates new sentences for the same input. Difficult to implement,
+                # probably have to modify the TensorFlow source code
                 if self.args.testInteractive:
                     self.mainTestInteractive(sess)
                 else:
@@ -184,33 +187,36 @@ class Main:
 
         print('Start training...')
 
-        for e in range(self.args.numEpochs):
+        try:  # If the user exit while training, we still try to save the model
+            for e in range(self.args.numEpochs):
 
-            print("--- Epoch {}/{} ; (lr={})".format(e, self.args.numEpochs, self.args.learningRate))
-            print()
+                print("--- Epoch {}/{} ; (lr={})".format(e, self.args.numEpochs, self.args.learningRate))
+                print()
 
-            batches = self.textData.getBatches()
+                batches = self.textData.getBatches()
 
-            # TODO: Also update learning parameters eventually
+                # TODO: Also update learning parameters eventually
 
-            tic = time.perf_counter()
-            for nextBatch in tqdm(batches, desc="Training"):
-                # Training pass
-                ops, feedDict = self.model.step(nextBatch)
-                assert len(ops) == 2  # training, loss
-                _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
-                self.writer.add_summary(summary, self.globStep)
-                self.globStep += 1
+                tic = time.perf_counter()
+                for nextBatch in tqdm(batches, desc="Training"):
+                    # Training pass
+                    ops, feedDict = self.model.step(nextBatch)
+                    assert len(ops) == 2  # training, loss
+                    _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
+                    self.writer.add_summary(summary, self.globStep)
+                    self.globStep += 1
 
-                # Checkpoint
-                if self.globStep % self.args.saveEvery == 0:
-                    tqdm.write('Checkpoint reached: saving model (don\'t stop the run)...')
-                    self.saveModelParams()
-                    self.saver.save(sess, self._getModelName())  # TODO: Put a limit size (ex: 3GB for the modelDir)
-                    tqdm.write('Model saved.')
-            toc = time.perf_counter()
+                    # Checkpoint
+                    if self.globStep % self.args.saveEvery == 0:
+                        self._saveSession(sess)
 
-            print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
+                toc = time.perf_counter()
+
+                print("Epoch finished in: {}s".format(toc-tic))  # TODO: Better time format
+        except (KeyboardInterrupt, SystemExit):  # If the user press Ctrl+C while testing progress
+            print('Interruption detected, exiting the program...')
+
+        self._saveSession(sess)  # Ultimate saving before complete exit
 
     def predictTestset(self, sess):
         """ Try predicting the sentences from the samples.txt file.
@@ -223,15 +229,20 @@ class Main:
         with open(os.path.join(self.TEST_IN_NAME), 'r') as f:
             lines = f.readlines()
 
+        modelList = self._getModelList()
+        if not modelList:
+            print('Warning: No model found in \'{}\'. Please train a model before trying to predict'.format(self.modelDir))
+            return
+
         # Predicting for each model present in modelDir
-        for modelName in sorted(self._getModelList()):  # TODO: Natural sorting
+        for modelName in sorted(modelList):  # TODO: Natural sorting
             print('Restoring previous model from {}'.format(modelName))
             self.saver.restore(sess, modelName)
             print('Testing...')
 
             saveName = modelName[:-len(self.MODEL_EXT)] + self.TEST_OUT_SUFFIX  # We remove the model extension and add the prediction suffix
             with open(saveName, 'w') as f:
-                for line in lines:
+                for line in tqdm(lines, desc='Sentences'):
                     question = line[:-1]  # Remove the endl character
 
                     batch = self.textData.sentence2enco(question)
@@ -243,7 +254,7 @@ class Main:
 
                     predString = 'Q: {}\nA: {}\n\n'.format(question, self.textData.sequence2str(answer, clean=True))
                     if self.args.verbose:
-                        print(predString)
+                        tqdm.write(predString)
                     f.write(predString)
 
     def mainTestInteractive(self, sess):
@@ -305,6 +316,7 @@ class Main:
                 self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
                 print('Model restored.')
             elif self._getModelList():
+                print('Conflict with previous models.')
                 raise RuntimeError('Some models are already present in \'{}\'. You should check them first'.format(self.modelDir))
             else:  # No other model to conflict with (probably summary files)
                 print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Ask for confirmation ?
@@ -318,6 +330,16 @@ class Main:
 
         else:
             print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
+
+    def _saveSession(self, sess):
+        """ Save the model parameters and the variables
+        Args:
+            sess: the current session
+        """
+        tqdm.write('Checkpoint reached: saving model (don\'t stop the run)...')
+        self.saveModelParams()
+        self.saver.save(sess, self._getModelName())  # TODO: Put a limit size (ex: 3GB for the modelDir)
+        tqdm.write('Model saved.')
 
     def _getModelList(self):
         """ Return the list of the model files inside the model directory
@@ -340,14 +362,35 @@ class Main:
         # If there is a previous model, restore some parameters
         configName = os.path.join(self.modelDir, self.CONFIG_FILENAME)
         if not self.args.reset and os.path.exists(configName):
+            # Loading
             config = configparser.ConfigParser()
             config.read(configName)
-            self.globStep = config['General'].getint('globStep')
 
-            maxLength = config['General'].getint('maxLength')
-            if self.args.maxLength != maxLength:
-                print('Warning: change maxLength to {} to match the present model'.format(maxLength))
-                self.args.maxLength = config['General'].getint('maxLength')
+            # Check the version
+            currentVersion = config['General'].get('version')
+            if currentVersion != self.CONFIG_VERSION:
+                raise UserWarning('Present configuration version {0} does not match {1}. You can try manual changes on \'{2}\''.format(currentVersion, self.CONFIG_VERSION, configName))
+
+            # Restoring the the parameters
+            self.globStep = config['General'].getint('globStep')
+            self.args.maxLength = config['General'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
+            #self.args.datasetTag = config['General'].get('datasetTag')
+
+            self.args.hiddenSize = config['Network'].getint('hiddenSize')
+            self.args.numLayers = config['Network'].getint('numLayers')
+            self.args.embeddingSize = config['Network'].getint('embeddingSize')
+
+            # No restoring for training params, batch size or other non model dependent parameters (even learning rate ?)
+
+            # Show the restored params
+            print()
+            print('Warning: Restoring parameters:')
+            print('globStep: {}'.format(self.globStep))
+            print('maxLength: {}'.format(self.args.maxLength))
+            print('hiddenSize: {}'.format(self.args.hiddenSize))
+            print('numLayers: {}'.format(self.args.numLayers))
+            print('embeddingSize: {}'.format(self.args.embeddingSize))
+            print()
 
     def saveModelParams(self):
         """ Save the params of the model, like the current globStep value
@@ -355,12 +398,17 @@ class Main:
         """
         config = configparser.ConfigParser()
         config['General'] = {}
+        config['General']['version']  = self.CONFIG_VERSION
         config['General']['globStep']  = str(self.globStep)
         config['General']['maxLength'] = str(self.args.maxLength)
+
+        config['Network'] = {}
+        config['Network']['hiddenSize'] = str(self.args.hiddenSize)
+        config['Network']['numLayers'] = str(self.args.numLayers)
+        config['Network']['embeddingSize'] = str(self.args.embeddingSize)
+
         with open(os.path.join(self.modelDir, self.CONFIG_FILENAME), 'w') as configFile:
             config.write(configFile)
-
-        # TODO: Save all parameters (also datasetName ?) to keep a track of those
 
     def _getSummaryName(self):
         """ Parse the argument to decide were to save the summary, at the same place that the model

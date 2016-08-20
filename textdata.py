@@ -359,35 +359,11 @@ class TextData:
             batch (Batch): a batch object
         """
         print('----- Print batch -----')
-        print('Encode (should be inverted, as on the paper):')
         for i in range(len(batch.encoderSeqs[0])):  # Batch size
-            for j in range(len(batch.encoderSeqs)):  # Sequence length
-                print(self.id2word[batch.encoderSeqs[j][i]], end=' ')
-            print()
-        print('Decoder:')
-        for i in range(len(batch.decoderSeqs[0])):  # Batch size
-            for j in range(len(batch.decoderSeqs)):  # Sequence length
-                print(self.id2word[batch.decoderSeqs[j][i]], end=' ')
-            print()
-        print('Targets (same as decoder but without the <go>):')
-        for i in range(len(batch.targetSeqs[0])):  # Batch size
-            for j in range(len(batch.targetSeqs)):  # Sequence length
-                print(self.id2word[batch.targetSeqs[j][i]] + '({})'.format(batch.weights[j][i]), end=' ')
-            print()
-
-    def playASequence(self, sequence):  # TODO: Delete
-        """Print the words associated to a sequence
-        Args:
-            sequence (list<int>): the sentence to print
-        """
-        warnings.warn('playASequence deprecated. Should use sequence2str instead', DeprecationWarning)
-
-        if not sequence:
-            return
-
-        for w in sequence[:-1]:
-            print(self.id2word[w], end=' - ')
-        print(self.id2word[sequence[-1]])  # endl
+            print('Encoder: {}'.format(self.batchSeq2str(batch.encoderSeqs, seqId=i)))
+            print('Decoder: {}'.format(self.batchSeq2str(batch.decoderSeqs, seqId=i)))
+            print('Targets: {}'.format(self.batchSeq2str(batch.targetSeqs, seqId=i)))
+            print('Weights: {}'.format(' '.join(batch.weights)))
 
     def sequence2str(self, sequence, clean=False, reverse=False):
         """Convert a list of integer into a human readable string
@@ -398,7 +374,6 @@ class TextData:
         Return:
             str: the sentence
         """
-        # TODO: add formatting options to reverse the list for the input
 
         if not sequence:
             return ''
@@ -414,7 +389,6 @@ class TextData:
                 sentence.append(self.id2word[wordId])
 
         if reverse:  # Reverse means input so no <eos> (otherwise pb with previous early stop)
-            print('zerze')
             sentence.reverse()
 
         return ' '.join(sentence)
@@ -426,13 +400,14 @@ class TextData:
         Args:
             batchSeq (list<list<int>>): the sentence(s) to print
             seqId (int): the position of the sequence inside the batch
+            kwargs: the formatting options( See sequence2str() )
         Return:
             str: the sentence
         """
         sequence = []
         for i in range(len(batchSeq)):  # Sequence length
             sequence.append(batchSeq[i][seqId])
-        return self.sequence2str(sequence, kwargs)
+        return self.sequence2str(sequence, **kwargs)
 
     def sentence2enco(self, sentence):
         """Encode a sequence and return a batch as an input for the model
