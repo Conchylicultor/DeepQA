@@ -46,13 +46,7 @@ To quickly get some results, the best way is to reduce the sentence length to 5.
     Q: How old are you ?
     A: thirty-five.
     
-    Q: Are you alive ?
-    A: No.
-    
     Q: Will Google hire me ?
-    A: No.
-    
-    Q: Can you say yes ?
     A: No.
     
     Q: Tell me the alphabet
@@ -63,9 +57,6 @@ To quickly get some results, the best way is to reduce the sentence length to 5.
     
     Q: Do you love me ?
     A: Of course.
-    
-    Q: ...
-    A: Alex ?
 
 Here is some case where it fails:
 

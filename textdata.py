@@ -119,6 +119,8 @@ class TextData:
         for i in range(batchSize):
             # Unpack the sample
             sample = samples[i]
+            if not self.args.test and self.args.watsonMode:  # Watson mode: invert question and answer
+                sample = list(reversed(sample))
             batch.encoderSeqs.append(list(reversed(sample[0])))  # Reverse inputs (and not outputs), little trick as defined on the original seq2seq paper
             batch.decoderSeqs.append([self.goToken] + sample[1] + [self.eosToken])  # Add the <go> and <eos> tokens
             batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
@@ -156,6 +158,11 @@ class TextData:
         batch.decoderSeqs = decoderSeqsT
         batch.targetSeqs = targetSeqsT
         batch.weights = weightsT
+
+        # Debug
+        self.printBatch(batch)
+        print(self.sequence2str(samples[0][0]))
+        print(self.sequence2str(samples[0][1]))  # Check we did not modified the original sample
 
         return batch
 

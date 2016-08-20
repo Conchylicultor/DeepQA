@@ -58,9 +58,10 @@ class Main:
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
-        self.CONFIG_VERSION = '0.1'
+        self.CONFIG_VERSION = '0.2'
         self.TEST_IN_NAME = 'data/test/samples.txt'
         self.TEST_OUT_SUFFIX = '_predictions.txt'
+        self.SENTENCES_PREFIX = ['Q: ', 'A: ']
 
     @staticmethod
     def parseArgs():
@@ -80,6 +81,7 @@ class Main:
         globalArgs.add_argument('--verbose', action='store_true', help='When testing, will plot the outputs at the same time they are computed')
         globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
+        globalArgs.add_argument('--watsonMode', action='store_true', help='Inverse the questions and answer when training (the network try to guess the question)')
         globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
 
@@ -163,7 +165,7 @@ class Main:
                 else:
                     print('Start predicting...')
                     self.predictTestset(sess)
-                    print('Prediction done')
+                    print('All predictions done')
             else:
                 self.mainTrain(sess)
 
@@ -242,11 +244,13 @@ class Main:
 
             saveName = modelName[:-len(self.MODEL_EXT)] + self.TEST_OUT_SUFFIX  # We remove the model extension and add the prediction suffix
             with open(saveName, 'w') as f:
+                nbIgnored = 0
                 for line in tqdm(lines, desc='Sentences'):
                     question = line[:-1]  # Remove the endl character
 
                     batch = self.textData.sentence2enco(question)
                     if not batch:
+                        nbIgnored += 1
                         continue  # Back to the beginning, try again
                     ops, feedDict = self.model.step(batch)
                     output = sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
@@ -256,6 +260,7 @@ class Main:
                     if self.args.verbose:
                         tqdm.write(predString)
                     f.write(predString)
+                print('Prediction finished, {}/{} sentences ignored (too long)'.format(nbIgnored, len(lines)))
 
     def mainTestInteractive(self, sess):
         """ Try predicting the sentences that the user will enter in the console
@@ -374,6 +379,7 @@ class Main:
             # Restoring the the parameters
             self.globStep = config['General'].getint('globStep')
             self.args.maxLength = config['General'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
+            self.args.watsonMode = config['General'].getboolean('watsonMode')
             #self.args.datasetTag = config['General'].get('datasetTag')
 
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
@@ -387,6 +393,7 @@ class Main:
             print('Warning: Restoring parameters:')
             print('globStep: {}'.format(self.globStep))
             print('maxLength: {}'.format(self.args.maxLength))
+            print('watsonMode: {}'.format(self.args.watsonMode))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
             print('embeddingSize: {}'.format(self.args.embeddingSize))
@@ -401,6 +408,7 @@ class Main:
         config['General']['version']  = self.CONFIG_VERSION
         config['General']['globStep']  = str(self.globStep)
         config['General']['maxLength'] = str(self.args.maxLength)
+        config['General']['watsonMode'] = str(self.args.watsonMode)
 
         config['Network'] = {}
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
