@@ -103,8 +103,7 @@ class TextData:
     def _createBatch(self, samples):
         """Create a single batch from the list of sample. The batch size is automatically defined by the number of
         samples given.
-        The inputs should already be inverted. The target should already have <go> and <eos> (TODO: Change: invert
-        here but not elsewhere (when loading and in sentence2encoder)).
+        The inputs should already be inverted. The target should already have <go> and <eos>
         Warning: This function should not make direct calls to args.batchSize !!!
         Args:
             samples (list<Obj>): a list of samples, each sample being on the form [input, target]

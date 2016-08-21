@@ -88,7 +88,7 @@ The `--modelTag` option is optional (it's just to avoid conflict between the dif
     python main.py --test --modelTag first-try --verbose
     python main.py --testInteractive --modelTag first-try
 
-The results are shown after 20000 iterations. With my state-of-the-art GeForce GT 740M, it took about 2h to train the model with the previous arguments, which is still relatively fast.
+The results are shown after 20000 iterations. With my state-of-the-art GeForce GT 740M, it took about 2h to train the model with the previous arguments, which is still relatively fast (since then, I made some code modifications so currently it should takes longer. To reproduce the original results, use [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1)).
 
 With longer sentences, the network is much slower to train. After 150000 iterations with maxLength=10, the network still mainly gives garbadge answers (basically answer all open ended questions by 'I don't know'). Among those, we can still find some interesting (or creepy) ones:
 
