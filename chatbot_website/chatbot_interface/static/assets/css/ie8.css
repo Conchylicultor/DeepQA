@@ -1,0 +1,36 @@
+/*
+	Identity by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+*/
+
+/* List */
+
+	ul.icons li a {
+		-ms-behavior: url("assets/js/PIE.htc");
+	}
+
+		ul.icons li a:before {
+			text-align: center;
+			font-size: 26px;
+		}
+
+/* Main */
+
+	#main {
+		-ms-behavior: url("assets/js/PIE.htc");
+	}
+
+		#main .avatar img {
+			-ms-behavior: url("assets/js/PIE.htc");
+		}
+
+/* Footer */
+
+	#footer {
+		color: #fff;
+	}
+
+		#footer .copyright li {
+			border-left: solid 1px #fff;
+		}

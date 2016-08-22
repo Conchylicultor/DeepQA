@@ -1,0 +1,72 @@
+{% load staticfiles %}
+<!DOCTYPE HTML>
+<!--
+	Identity by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>DeepQA: A Chatbot</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!--[if lte IE 8]><script src="{% static 'assets/js/html5shiv.js' %}"></script><![endif]-->
+		<link rel="stylesheet" href="{% static 'assets/css/main.css' %}" />
+		<!--[if lte IE 9]><link rel="stylesheet" href="{% static 'assets/css/ie9.css' %}" /><![endif]-->
+		<!--[if lte IE 8]><link rel="stylesheet" href="{% static 'assets/css/ie8.css' %}" /><![endif]-->
+		<noscript><link rel="stylesheet" href="{% static 'assets/css/noscript.css' %}" /></noscript>
+	</head>
+	<body class="is-loading">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Main -->
+					<section id="main">
+						<header>
+							<span class="avatar"><img src="{% static 'images/avatar.jpg' %}" alt="" /></span>
+							<h1>Chatbot</h1>
+							<p>Welcome for this session!</p>
+						</header>
+						
+						<form method="post" action="#">
+                            {% csrf_token %}
+							<div class="field">
+								<input type="text" name="name1" id="name" placeholder="Say something..." /><a href="#" class="button">Go</a>
+							</div>
+							<!--<div class="field">
+								<textarea name="message" id="message" placeholder="Message" rows="4"></textarea>
+							</div>-->
+						</form>
+						<hr />
+						
+						<footer>
+							<ul class="icons">
+								<li><a href="http://e-pot.xyz" class="fa-home">Home</a></li>
+								<li><a href="https://github.com/Conchylicultor/DeepQA" class="fa-github">Github</a></li>
+								<li><a href="mailto:etiennefg.pot@gmail.com" class="fa-envelope">Contact</a></li>
+								<!--<li><a href="#" class="fa-linkedin">LinkedIn</a></li>-->
+							</ul>
+						</footer>
+					</section>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<ul class="copyright">
+							<li>&copy; Etienne Pot</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+						</ul>
+					</footer>
+
+			</div>
+
+		<!-- Scripts -->
+			<!--[if lte IE 8]><script src="{% static 'assets/js/respond.min.js' %}"></script><![endif]-->
+			<script>
+				if ('addEventListener' in window) {
+					window.addEventListener('load', function() { document.body.className = document.body.className.replace(/\bis-loading\b/, ''); });
+					document.body.className += (navigator.userAgent.match(/(MSIE|rv:11\.0)/) ? ' is-ie' : '');
+				}
+			</script>
+
+	</body>
+</html>

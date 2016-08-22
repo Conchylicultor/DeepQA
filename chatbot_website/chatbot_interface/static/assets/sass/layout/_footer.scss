@@ -1,0 +1,39 @@
+@import '../libs/vars';
+@import '../libs/functions';
+@import '../libs/mixins';
+
+///
+/// Identity by HTML5 UP
+/// html5up.net | @ajlkn
+/// Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+///
+
+/* Footer */
+
+	#footer {
+		@include vendor('align-self', 'flex-end');
+		width: 100%;
+		padding: _size(element-margin) 0 0 0;
+		color: rgba(255,255,255,0.75);
+		cursor: default;
+		text-align: center;
+
+		.copyright {
+			margin: 0;
+			padding: 0;
+			font-size: 0.9em;
+			list-style: none;
+
+			li {
+				display: inline-block;
+				margin: 0 0 0 (0.85em - (_size(letter-spacing) * 2));
+				padding: 0 0 0 0.85em;
+				border-left: solid _size(border-width) rgba(255,255,255,0.5);
+				line-height: 1;
+
+				&:first-child {
+					border-left: 0;
+				}
+			}
+		}
+	}

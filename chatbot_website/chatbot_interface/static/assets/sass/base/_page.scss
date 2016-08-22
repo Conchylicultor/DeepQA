@@ -1,0 +1,78 @@
+@import '../libs/vars';
+@import '../libs/functions';
+@import '../libs/mixins';
+
+///
+/// Identity by HTML5 UP
+/// html5up.net | @ajlkn
+/// Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+///
+
+/* Basic */
+
+	// Ensures page width is always >=320px.
+		@include breakpoint(xsmall) {
+			html, body {
+				min-width: 320px;
+			}
+		}
+
+	body {
+
+		// Prevents animation/transition "flicker" on page load.
+		// Automatically added/removed by js/main.js.
+			&.is-loading {
+				*, *:before, *:after {
+					@include vendor('animation', 'none !important');
+					@include vendor('transition', 'none !important');
+				}
+			}
+
+	}
+
+	html {
+		height: 100%;
+	}
+
+	body {
+		height: 100%;
+		background-color: _palette(bg);
+		@include vendor('background-image', (
+			'url("images/overlay.png")',
+			'linear-gradient(60deg, #{transparentize(_palette(accent1), 0.5)} 5%, #{transparentize(_palette(accent2), 0.65)})',
+			'url("../../images/bg.jpg")'
+		));
+		background-repeat:		repeat,			no-repeat,			no-repeat;
+		background-size:		100px 100px,	cover,				cover;
+		background-position:	top left,		center center,		bottom center;
+		background-attachment:	fixed,			fixed,				fixed;
+
+		&:after {
+			content: '';
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: inherit;
+			opacity: 0;
+			z-index: 1;
+
+			background-color: _palette(bg);
+			@include vendor('background-image', (
+				'url("images/overlay.png")',
+				'linear-gradient(60deg, #{transparentize(_palette(accent1), 0.5)} 5%, #{transparentize(_palette(accent2), 0.65)})'
+			));
+			background-repeat:		repeat,			no-repeat;
+			background-size:		100px 100px,	cover;
+			background-position:	top left,		center center;
+
+			@include vendor('transition', 'opacity #{_duration(bg)} ease-out');
+		}
+
+		&.is-loading {
+			&:after {
+				opacity: 1;
+			}
+		}
+	}

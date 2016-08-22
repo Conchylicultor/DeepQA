@@ -28,7 +28,7 @@ import os  # Checking file existance
 import random
 import warnings  # Should be temporary
 
-from cornelldata import CornellData
+from chatbot.cornelldata import CornellData
 
 
 class Batch:

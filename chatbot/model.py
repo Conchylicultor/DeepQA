@@ -22,7 +22,7 @@ Model to predict the next sentence given an input sequence
 
 import tensorflow as tf
 
-from textdata import Batch
+from chatbot.textdata import Batch
 
 
 class Model:

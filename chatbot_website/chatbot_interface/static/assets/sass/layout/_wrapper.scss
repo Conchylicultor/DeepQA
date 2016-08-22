@@ -1,0 +1,40 @@
+@import '../libs/vars';
+@import '../libs/functions';
+@import '../libs/mixins';
+
+///
+/// Identity by HTML5 UP
+/// html5up.net | @ajlkn
+/// Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+///
+
+/* Wrapper */
+
+	#wrapper {
+		@include vendor('display', 'flex');
+		@include vendor('align-items', 'center');
+		@include vendor('justify-content', 'space-between');
+		@include vendor('flex-direction', 'column');
+		@include vendor('perspective', '1000px');
+		position: relative;
+		min-height: 100%;
+		padding: _size(element-margin);
+		z-index: 2;
+
+		> * {
+			z-index: 1;
+		}
+
+		&:before {
+			content: '';
+			display: block;
+		}
+
+		@include breakpoint(xxsmall) {
+			padding: (_size(element-margin) * 0.5);
+		}
+
+		body.is-ie & {
+			height: 100%;
+		}
+	}
