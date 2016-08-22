@@ -32,7 +32,7 @@ from textdata import TextData
 from model import Model
 
 
-class Main:
+class Chatbot:
     """
     Main class which launch the training or testing mode
     """
@@ -154,7 +154,9 @@ class Main:
             print('Initialize variables...')
             tf.initialize_all_variables().run()
 
-            self.managePreviousModel(sess)  # Reload the model (eventually)
+            # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
+            if not self.args.test or (self.args.test and self.args.testInteractive):
+                self.managePreviousModel(sess)
 
             if self.args.test:
                 # TODO: For testing, add a mode where instead taking the most likely output after the <go> token,
@@ -192,7 +194,7 @@ class Main:
         try:  # If the user exit while training, we still try to save the model
             for e in range(self.args.numEpochs):
 
-                print("--- Epoch {}/{} ; (lr={})".format(e, self.args.numEpochs, self.args.learningRate))
+                print("--- Epoch {}/{} ; (lr={})".format(e+1, self.args.numEpochs, self.args.learningRate))
                 print()
 
                 batches = self.textData.getBatches()
@@ -386,7 +388,7 @@ class Main:
             self.args.numLayers = config['Network'].getint('numLayers')
             self.args.embeddingSize = config['Network'].getint('embeddingSize')
 
-            # No restoring for training params, batch size or other non model dependent parameters (even learning rate ?)
+            # No restoring for training params, batch size or other non model dependent parameters
 
             # Show the restored params
             print()
@@ -422,6 +424,9 @@ class Main:
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
+        
+        # TODO: Keep track of the learning params (but without restoring them)
+        config['Trainingg (won\'t be restored)'] = {}
 
         with open(os.path.join(self.modelDir, self.CONFIG_FILENAME), 'w') as configFile:
             config.write(configFile)
@@ -463,5 +468,5 @@ class Main:
 
 
 if __name__ == "__main__":
-    program = Main()
-    program.main()
+    chatbot = Chatbot()
+    chatbot.main()
