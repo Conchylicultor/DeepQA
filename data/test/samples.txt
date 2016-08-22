@@ -5,6 +5,9 @@ How are you?
 What is your name ?
 Are you alive ?
 Luke, I am your father!
+You shall not pass!
+Are you ready ?
+When are you ready ?
 What color is the sky?
 How old are you ?
 Can you say 'Hello' ?

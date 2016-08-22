@@ -11,17 +11,26 @@ from chatbot import chatbot
 logger = logging.getLogger(__name__)
 
 
-class chatbotManager:
+class ChatbotManager:
     bot = None
 
     @staticmethod
     def initBot():
+        """ Instantiate the chatbot for later use
+        Warning: Should be called only once!
+        """
         logger.info('Initializing bot...')
-        chatbotManager.bot = chatbot.Chatbot()
+        ChatbotManager.bot = chatbot.Chatbot()
 
     @staticmethod
-    def callBot():
-        if chatbotManager.bot:
+    def callBot(sentence):
+        """ Use the previously instantiated bot to predict a response to the given sentence
+        Args:
+            sentence (str): the question to answer
+        Return:
+            str: the answer
+        """
+        if ChatbotManager.bot:
             logger.info('Bot called!')
         else:
             logger.error('Error: Bot not initialized!')

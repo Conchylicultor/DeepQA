@@ -37,6 +37,13 @@ class Chatbot:
     Main class which launch the training or testing mode
     """
 
+    class TestMode:
+        """ Simple structure representing the different testing modes
+        """
+        ALL = 'all'
+        INTERACTIVE = 'interactive'  # The user can write his own questions
+        DAEMON = 'daemon'  # The chatbot runs on background and can regularly be called to predict something
+
     def __init__(self):
         """
         """
@@ -53,6 +60,9 @@ class Chatbot:
         self.modelDir = ''  # Where the model is saved
         self.globStep = 0  # Represent the number of iteration for the current model
 
+        # TensorFlow main session (we keep track for the daemon)
+        self.sess = None
+
         # Filename and directories constants
         self.MODEL_DIR_BASE = 'save/model'
         self.MODEL_NAME_BASE = 'model'
@@ -64,17 +74,24 @@ class Chatbot:
         self.SENTENCES_PREFIX = ['Q: ', 'A: ']
 
     @staticmethod
-    def parseArgs():
+    def parseArgs(args):
         """
         Parse the arguments from the given command line
+        Args:
+            args (list<str>): List of arguments to parse. If None, the default sys.argv will be parsed
         """
 
         parser = argparse.ArgumentParser()
 
         # Global options
         globalArgs = parser.add_argument_group('Global options')
-        globalArgs.add_argument('--test', action='store_true', help='if present, launch the program try to answer all sentences from data/test/ with the defined model(s)')
-        globalArgs.add_argument('--testInteractive', action='store_true', help='if present, launch the interactive testing mode where the user can wrote his own sentences')
+        globalArgs.add_argument('--test',
+                                nargs='?',
+                                choices=[Chatbot.TestMode.ALL, Chatbot.TestMode.INTERACTIVE, Chatbot.TestMode.DAEMON],
+                                const=Chatbot.TestMode.ALL, default=None,
+                                help='if present, launch the program try to answer all sentences from data/test/ with'
+                                     ' the defined model(s), in interactive mode, the user can wrote his own sentences,'
+                                     ' use daemon mode to integrate the chatbot in another program')
         globalArgs.add_argument('--createDataset', action='store_true', help='if present, the program will only generate the dataset from the corpus (no training/testing)')
         globalArgs.add_argument('--playDataset', type=int, nargs='?', const=10, default=None,  help='if set, the program  will randomly play some samples(can be use conjointly with createDataset if this is the only action you want to perform)')
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the model directory (Warning: the model will be destroyed with all the folder content)')
@@ -105,9 +122,9 @@ class Chatbot:
         trainingArgs.add_argument('--batchSize', type=int, default=10, help='mini-batch size')
         trainingArgs.add_argument('--learningRate', type=float, default=0.001, help='Learning rate')
 
-        return parser.parse_args()
+        return parser.parse_args(args)
 
-    def main(self):
+    def main(self, args=None):
         """
         Launch the training and/or the interactive mode
         """
@@ -117,12 +134,9 @@ class Chatbot:
 
         # General initialisation
 
-        self.args = self.parseArgs()
+        self.args = self.parseArgs(args)
 
         #tf.logging.set_verbosity(tf.logging.INFO) # DEBUG, INFO, WARN (default), ERROR, or FATAL
-
-        if self.args.testInteractive:  # Training or testing mode
-            self.args.test = True
 
         self.loadModelParams()  # Update the self.modelDir and self.globStep, for now, not used when loading Model (but need to be called before _getSummaryName)
 
@@ -150,28 +164,35 @@ class Chatbot:
 
         # Running session
 
-        with tf.Session() as sess:
-            print('Initialize variables...')
-            tf.initialize_all_variables().run()
+        self.sess = tf.Session()  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
-            # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
-            if not self.args.test or (self.args.test and self.args.testInteractive):
-                self.managePreviousModel(sess)
+        print('Initialize variables...')
+        self.sess.run(tf.initialize_all_variables())
 
-            if self.args.test:
-                # TODO: For testing, add a mode where instead taking the most likely output after the <go> token,
-                # takes the second or third so it generates new sentences for the same input. Difficult to implement,
-                # probably have to modify the TensorFlow source code
-                if self.args.testInteractive:
-                    self.mainTestInteractive(sess)
-                else:
-                    print('Start predicting...')
-                    self.predictTestset(sess)
-                    print('All predictions done')
+        # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
+        if self.args.test != Chatbot.TestMode.ALL:
+            self.managePreviousModel(self.sess)
+
+        if self.args.test:
+            # TODO: For testing, add a mode where instead taking the most likely output after the <go> token,
+            # takes the second or third so it generates new sentences for the same input. Difficult to implement,
+            # probably have to modify the TensorFlow source code
+            if self.args.test == Chatbot.TestMode.INTERACTIVE:
+                self.mainTestInteractive(self.sess)
+            elif self.args.test == Chatbot.TestMode.ALL:
+                print('Start predicting...')
+                self.predictTestset(self.sess)
+                print('All predictions done')
+            elif self.args.test == Chatbot.TestMode.DAEMON:
+                print('Daemon mode, running in background...')  # TODO: Implement interface predict() and close()
             else:
-                self.mainTrain(sess)
+                raise RuntimeError('Unknown test mode: {}'.format(self.args.test))  # Should never happen
+        else:
+            self.mainTrain(self.sess)
 
-        print("The End! Thanks for using this program")
+        if self.args.test != Chatbot.TestMode.DAEMON:
+            self.sess.close()
+            print("The End! Thanks for using this program")
 
     def mainTrain(self, sess):
         """ Training loop
@@ -294,6 +315,16 @@ class Chatbot:
             print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
             print(self.textData.sequence2str(answer))
             print()
+
+    def daemonPredict(self, sentence):
+        """ Predict the sentence
+        """
+        pass
+
+    def daemonClose(self):
+        print('Exiting the daemon mode...')
+        self.sess.close()
+        print('Daemon closed.')
 
     def managePreviousModel(self, sess):
         """ Restore or reset the model, depending of the parameters

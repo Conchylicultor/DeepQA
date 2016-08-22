@@ -22,7 +22,7 @@ The Cornell dataset is already included.
 
 ## Running
 
-To train the model, simply run `main.py`. Once trained, you can test the results with `main.py --test` (results generated in 'save/model/samples_predictions.txt') or `main.py --testInteractive` (more fun).
+To train the model, simply run `main.py`. Once trained, you can test the results with `main.py --test` (results generated in 'save/model/samples_predictions.txt') or `main.py --test interactive` (more fun).
 
 A small script exist (`trainner.py`) to launch multiple training with different parameters but its not complete yet.
 
@@ -85,8 +85,8 @@ The last argument will read some samples from the training set, so you can have 
 
 The `--modelTag` option is optional (it's just to avoid conflict between the different models). You can also use the option `--keepAll` if during testing, you want to see the predictions at different steps (it's interesting to see the program changes its name and age as the training progress). Finally, show the results with one of the two commands:
 
-    python main.py --test --modelTag first-try --verbose
-    python main.py --testInteractive --modelTag first-try
+    python main.py --test --verbose --modelTag first-try
+    python main.py --test interactive --modelTag first-try
 
 The results are shown after 20000 iterations. With my state-of-the-art GeForce GT 740M, it took about 2h to train the model with the previous arguments, which is still relatively fast (since then, I made some code modifications so currently it should takes longer. To reproduce the original results, use [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1)).
 

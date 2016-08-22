@@ -91,7 +91,7 @@ class Model:
             self.textData.getVocabularySize(),  # Both encoder and decoder have the same number of class
             embedding_size=self.args.embeddingSize,  # Dimension of each word
             output_projection=None,  # Eventually
-            feed_previous=self.args.test  # When we test (self.args.test), we use previous output as next input (feed_previous)
+            feed_previous=bool(self.args.test)  # When we test (self.args.test), we use previous output as next input (feed_previous)
         )
 
         # For testing only
