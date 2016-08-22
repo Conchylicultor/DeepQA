@@ -7,5 +7,5 @@ def mainView(request):
     Args:
         request (Obj): django request object
     """
-    ChatbotManager.callBot('')
+    print(ChatbotManager.callBot('Hello world!'))
     return render(request, 'index.html', {})

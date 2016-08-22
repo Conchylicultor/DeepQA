@@ -271,13 +271,10 @@ class Chatbot:
                 for line in tqdm(lines, desc='Sentences'):
                     question = line[:-1]  # Remove the endl character
 
-                    batch = self.textData.sentence2enco(question)
-                    if not batch:
+                    answer = self.singlePredict(question)
+                    if not answer:
                         nbIgnored += 1
                         continue  # Back to the beginning, try again
-                    ops, feedDict = self.model.step(batch)
-                    output = sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
-                    answer = self.textData.deco2sentence(output)
 
                     predString = '{x[0]}{0}\n{x[1]}{1}\n\n'.format(question, self.textData.sequence2str(answer, clean=True), x=self.SENTENCES_PREFIX)
                     if self.args.verbose:
@@ -303,25 +300,32 @@ class Chatbot:
             if question == '' or question == 'exit':
                 break
 
-            batch = self.textData.sentence2enco(question)
-            if not batch:
+            answer = self.singlePredict(question)
+            if not answer:
                 print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
                 continue  # Back to the beginning, try again
-            print(self.textData.batchSeq2str(batch.encoderSeqs, clean=True, reverse=True))
-            ops, feedDict = self.model.step(batch)
-            output = sess.run(ops[0], feedDict)
-            answer = self.textData.deco2sentence(output)
+
+            # TODO: print(self.textData.batchSeq2str(batch.encoderSeqs, clean=True, reverse=True))
 
             print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
             print(self.textData.sequence2str(answer))
             print()
 
-    def daemonPredict(self, sentence):
+    def singlePredict(self, question):
         """ Predict the sentence
         """
-        pass
+        # TODO: Doc
+        batch = self.textData.sentence2enco(question)
+        if not batch:
+            return None
+        ops, feedDict = self.model.step(batch)
+        output = self.sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
+        answer = self.textData.deco2sentence(output)
+
+        return answer
 
     def daemonClose(self):
+        # TODO: Doc
         print('Exiting the daemon mode...')
         self.sess.close()
         print('Daemon closed.')

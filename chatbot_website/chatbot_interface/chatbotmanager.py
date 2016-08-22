@@ -21,6 +21,7 @@ class ChatbotManager:
         """
         logger.info('Initializing bot...')
         ChatbotManager.bot = chatbot.Chatbot()
+        ChatbotManager.bot.main(['--modelTag', 'server', '--test', 'daemon'])
 
     @staticmethod
     def callBot(sentence):
@@ -32,5 +33,6 @@ class ChatbotManager:
         """
         if ChatbotManager.bot:
             logger.info('Bot called!')
+            ChatbotManager.bot.singlePredict(sentence)
         else:
             logger.error('Error: Bot not initialized!')
