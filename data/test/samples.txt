@@ -18,6 +18,7 @@ How do you say hello in french?
 Speak french.
 Bonjour.
 Bonjour ?
+Hello world!
 Good night.
 Are you ok ?
 Will Google hire me ?
@@ -169,6 +170,14 @@ And ... action!
 Action!
 Let the movie begin
 Let the movie begin!
+You are fired!
+Fire
+Fire!
+Fire at will
+Fire at will!
+Incoming.
+Incoming!
+Incoming!!
 How many legs does a human have ?
 How many legs does a man have ?
 How many legs does a woman have ?
@@ -217,6 +226,7 @@ What is free will ?
 be moral !
 i really like our discussion on morality and ethics ...
 what do you like to talk about ?
+what would you like to talk about ?
 what do you think about tesla ?
 what do you think about bill gates ?
 What do you think about messi ?

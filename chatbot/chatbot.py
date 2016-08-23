@@ -98,6 +98,7 @@ class Chatbot:
         globalArgs.add_argument('--verbose', action='store_true', help='When testing, will plot the outputs at the same time they are computed')
         globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
+        globalArgs.add_argument('--rootDir', type=str, default=None, help='folder where to look for the models and data')
         globalArgs.add_argument('--watsonMode', action='store_true', help='Inverse the questions and answer when training (the network try to guess the question)')
         globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
@@ -135,6 +136,9 @@ class Chatbot:
         # General initialisation
 
         self.args = self.parseArgs(args)
+
+        if not self.args.rootDir:
+            self.args.rootDir = os.getcwd()  # Use the current working directory
 
         #tf.logging.set_verbosity(tf.logging.INFO) # DEBUG, INFO, WARN (default), ERROR, or FATAL
 
@@ -251,7 +255,7 @@ class Chatbot:
         """
 
         # Loading the file to predict
-        with open(os.path.join(self.TEST_IN_NAME), 'r') as f:
+        with open(os.path.join(self.args.rootDir, self.TEST_IN_NAME), 'r') as f:
             lines = f.readlines()
 
         modelList = self._getModelList()
@@ -323,6 +327,14 @@ class Chatbot:
         answer = self.textData.deco2sentence(output)
 
         return answer
+
+    def daemonPredict(self, sentence):
+        # TODO: Doc
+        return self.textData.sequence2str(
+            self.singlePredict(sentence),
+            clean=True
+        )
+
 
     def daemonClose(self):
         # TODO: Doc
@@ -397,7 +409,7 @@ class Chatbot:
         should be reset in managePreviousModel
         """
         # Compute the current model path
-        self.modelDir = self.MODEL_DIR_BASE
+        self.modelDir = os.path.join(self.args.rootDir, self.MODEL_DIR_BASE)
         if self.args.modelTag:
             self.modelDir += '-' + self.args.modelTag
 

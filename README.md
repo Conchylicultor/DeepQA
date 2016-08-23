@@ -18,9 +18,11 @@ The program require the following dependecies (easy to install using pip):
  * nltk (natural language toolkit for tokenized the sentences)
  * tqdm (for the nice progression bars)
 
-The Cornell dataset is already included.
+The Cornell dataset is already included. For the web interface, it require django (tested with 1.10).
 
 ## Running
+
+### Chatbot
 
 To train the model, simply run `main.py`. Once trained, you can test the results with `main.py --test` (results generated in 'save/model/samples_predictions.txt') or `main.py --test interactive` (more fun).
 
@@ -29,6 +31,10 @@ A small script exist (`trainner.py`) to launch multiple training with different 
 To visualize the computational graph and the cost with [TensorBoard](https://www.tensorflow.org/versions/r0.10/how_tos/summaries_and_tensorboard/index.html), just run `tensorboard --logdir save/`. For more help and options, use `python main.py -h`.
 
 By default, the network architecture is a standard encoder/decoder with two LSTM layers (hidden size of 256) and an embedding size for the vocabulary of 32. The network is trained using ADAM.
+
+### Web interface
+
+Once trained, it's possible to chat with it using a more user friendly interface. To launch the server locally, launch the `setup_web.sh` script.
 
 ## Results
 

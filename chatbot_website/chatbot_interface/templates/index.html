@@ -32,12 +32,16 @@
 						<form method="post" action="#">
                             {% csrf_token %}
 							<div class="field">
-								<input type="text" name="name1" id="name" placeholder="Say something..." /><a href="#" class="button">Go</a>
-							</div>
+								<input type="text" name="name1" id="name" placeholder="Say something..." />
+								<!--<a href="#" class="button">Go</a>-->
+								</div>
 							<!--<div class="field">
 								<textarea name="message" id="message" placeholder="Message" rows="4"></textarea>
 							</div>-->
 						</form>
+						
+						<div class="chat_zone"></div>
+						
 						<hr />
 						
 						<footer>

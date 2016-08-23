@@ -55,8 +55,8 @@ class TextData:
         self.args = args
 
         # Path variables
-        self.corpusDir = "data/cornell/"
-        self.samplesDir = "data/samples/"
+        self.corpusDir = os.path.join(self.args.rootDir, 'data/cornell/')
+        self.samplesDir = os.path.join(self.args.rootDir, 'data/samples/')
         self.samplesName = self._constructName()
         
         self.padToken = -1  # Padding
