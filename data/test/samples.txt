@@ -6,6 +6,7 @@ What is your name ?
 Are you alive ?
 Luke, I am your father!
 You shall not pass!
+I'm going to kill you!
 Are you ready ?
 When are you ready ?
 What color is the sky?
@@ -19,6 +20,7 @@ Speak french.
 Bonjour.
 Bonjour ?
 Hello world!
+Netflix and chill ?
 Good night.
 Are you ok ?
 Will Google hire me ?

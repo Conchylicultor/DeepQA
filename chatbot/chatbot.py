@@ -317,8 +317,11 @@ class Chatbot:
 
     def singlePredict(self, question):
         """ Predict the sentence
+        Args:
+            question (str): the raw input sentence
+        Return:
+            list <int>: the word ids corresponding to the answer
         """
-        # TODO: Doc
         batch = self.textData.sentence2enco(question)
         if not batch:
             return None
@@ -329,15 +332,20 @@ class Chatbot:
         return answer
 
     def daemonPredict(self, sentence):
-        # TODO: Doc
+        """ Return the answer to a given sentence (same as singlePredict() but with additional cleaning)
+        Args:
+            sentence (str): the raw input sentence
+        Return:
+            str: the human readable sentence
+        """
         return self.textData.sequence2str(
             self.singlePredict(sentence),
             clean=True
         )
 
-
     def daemonClose(self):
-        # TODO: Doc
+        """ A utility function to close the daemon when finish
+        """
         print('Exiting the daemon mode...')
         self.sess.close()
         print('Daemon closed.')

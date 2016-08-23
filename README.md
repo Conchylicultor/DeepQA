@@ -40,7 +40,21 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 
 ### Web interface
 
-Once trained, it's possible to chat with it using a more user friendly interface. To launch the server locally, use the `setup_web.sh` script.
+Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model present on `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it first with:
+
+```bash
+cd chatbot_website/
+python3 manage.py makemigrations
+python3 manage.py migrate
+```
+
+Then, to launch the server locally, use the following commands:
+
+```bash
+cd chatbot_website/
+redis-server &
+python3 manage.py runserver
+```
 
 ## Results
 

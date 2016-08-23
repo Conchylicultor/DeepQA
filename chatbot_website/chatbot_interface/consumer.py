@@ -21,6 +21,10 @@ def _getClientName(client):
 
 @channel_session
 def ws_connect(message):
+    """ Called when a client try to open a WebSocket
+    Args:
+        message (Obj): object containing the client query
+    """
     if message['path'] == '/chat':  # Check we are on the right channel
         clientName = _getClientName(message['client'])
         logger.info('New client connected: {}'.format(clientName))
@@ -30,8 +34,13 @@ def ws_connect(message):
 
 @channel_session
 def ws_receive(message):
+    """ Called when a client send a message
+    Args:
+        message (Obj): object containing the client query
+    """
     # Get client infos
     clientName = message.channel_session['room']
+    logger.info('Prediction from: {}'.format(clientName))
     data = json.loads(message['text'])
 
     # Compute the prediction
@@ -45,6 +54,10 @@ def ws_receive(message):
 
 @channel_session
 def ws_disconnect(message):
+    """ Called when a client disconnect
+    Args:
+        message (Obj): object containing the client query
+    """
     clientName = message.channel_session['room']
     logger.info('Client disconnected: {}'.format(clientName))
     Group(clientName).discard(message.reply_channel)
