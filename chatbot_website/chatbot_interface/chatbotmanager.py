@@ -32,7 +32,6 @@ class ChatbotManager:
             str: the answer
         """
         if ChatbotManager.bot:
-            logger.info('Bot called!')
             return ChatbotManager.bot.daemonPredict(sentence)
         else:
             logger.error('Error: Bot not initialized!')

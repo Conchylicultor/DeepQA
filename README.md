@@ -18,7 +18,13 @@ The program require the following dependecies (easy to install using pip):
  * nltk (natural language toolkit for tokenized the sentences)
  * tqdm (for the nice progression bars)
 
-The Cornell dataset is already included. For the web interface, it require django (tested with 1.10).
+The Cornell dataset is already included.
+
+The web interface require some additional packages:
+ * django (tested with 1.10)
+ * channels
+ * Redis (see [here](http://redis.io/topics/quickstart))
+ * asgi_redis
 
 ## Running
 
@@ -34,7 +40,7 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 
 ### Web interface
 
-Once trained, it's possible to chat with it using a more user friendly interface. To launch the server locally, launch the `setup_web.sh` script.
+Once trained, it's possible to chat with it using a more user friendly interface. To launch the server locally, use the `setup_web.sh` script.
 
 ## Results
 

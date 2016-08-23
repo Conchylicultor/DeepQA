@@ -26,21 +26,22 @@
 						<header>
 							<span class="avatar"><img src="{% static 'images/avatar.jpg' %}" alt="" /></span>
 							<h1>Chatbot</h1>
-							<p>Welcome for this session!</p>
+							<p>Welcome to this session!</p>
 						</header>
 						
-						<form method="post" action="#">
+						<form id="chat_form">
                             {% csrf_token %}
 							<div class="field">
-								<input type="text" name="name1" id="name" placeholder="Say something..." />
+								<input type="text" name="name" id="message" placeholder="Say something..." />
 								<!--<a href="#" class="button">Go</a>-->
+								<!--<button type="submit" id="go">Say it</button>-->
 								</div>
 							<!--<div class="field">
 								<textarea name="message" id="message" placeholder="Message" rows="4"></textarea>
 							</div>-->
 						</form>
 						
-						<div class="chat_zone"></div>
+						<div id="chat_zone"></div>
 						
 						<hr />
 						
@@ -71,6 +72,10 @@
 					document.body.className += (navigator.userAgent.match(/(MSIE|rv:11\.0)/) ? ' is-ie' : '');
 				}
 			</script>
+
+            <script type="text/javascript" src='{% static "js/jquery-3.1.0.min.js" %}'></script>
+            <script type="text/javascript" src='{% static "js/reconnecting-websocket.js" %}'></script>
+            <script type="text/javascript" src='{% static "js/chat.js" %}'></script>
 
 	</body>
 </html>
