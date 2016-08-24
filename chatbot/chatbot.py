@@ -480,8 +480,10 @@ class Chatbot:
         config['Network']['numLayers'] = str(self.args.numLayers)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
         
-        # TODO: Keep track of the learning params (but without restoring them)
-        config['Trainingg (won\'t be restored)'] = {}
+        # Keep track of the learning params (but without restoring them)
+        config['Training (won\'t be restored)'] = {}
+        config['Training (won\'t be restored)']['learningRate'] = str(self.args.learningRate)
+        config['Training (won\'t be restored)']['batchSize'] = str(self.args.batchSize)
 
         with open(os.path.join(self.modelDir, self.CONFIG_FILENAME), 'w') as configFile:
             config.write(configFile)

@@ -20,19 +20,19 @@ $(function() {
             var message_elem = $('#message');
             var message_val = message_elem.val();
 
-            // Send the message
             if (message_val) {
+                // Send the message
                 var message = {
                     message: message_val
                 };
                 chatsock.send(JSON.stringify(message));
                 message_elem.val('').focus();
-            }
 
-            // Add the message to the chat
-            chat_zone.prepend(
-                $("<p class='question'></p>").text('You: ' + message_val)
-            );
+                // Add the message to the chat
+                chat_zone.prepend(
+                    $("<p class='question'></p>").text('You: ' + message_val)
+                );
+            }
         }
         catch(err) {
             console.error(err.message);

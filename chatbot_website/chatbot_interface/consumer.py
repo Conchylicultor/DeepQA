@@ -48,6 +48,10 @@ def ws_receive(message):
     logger.info('Q: {}'.format(question))
     answer = ChatbotManager.callBot(question)
     logger.info('A: {}'.format(answer))
+    
+    # Check eventual error
+    if not answer:
+        answer = 'Error: Try a shorter sentence'
 
     # Send the prediction back
     Group(clientName).send({'text': json.dumps({'message': answer})})
