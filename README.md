@@ -40,12 +40,13 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 
 ### Web interface
 
-Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model present on `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it first with:
+Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model present on `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it with:
 
 ```bash
+export CHATBOT_SECRET_KEY "my-secret-key"
 cd chatbot_website/
-python3 manage.py makemigrations
-python3 manage.py migrate
+python manage.py makemigrations
+python manage.py migrate
 ```
 
 Then, to launch the server locally, use the following commands:
@@ -53,8 +54,10 @@ Then, to launch the server locally, use the following commands:
 ```bash
 cd chatbot_website/
 redis-server &
-python3 manage.py runserver
+python manage.py runserver
 ```
+
+After launch, the interface should be available on [http://localhost:8000/](http://localhost:8000/).
 
 ## Results
 

@@ -34,7 +34,11 @@ class TestChatbot(unittest.TestCase):
         self.chatbot = chatbot.Chatbot()
 
     def test_training_simple(self):
-        self.chatbot.main(['--numEpoch', '0'])
+        self.chatbot.main([
+            '--maxLength', '3', 
+            '--numEpoch', '1', 
+            '--modelTag', 'unit-test'
+        ])
 
     def test_training_watson(self):
         pass
@@ -46,11 +50,14 @@ class TestChatbot(unittest.TestCase):
         progInput = io.StringIO()
         progInput.write('Hi!\n')
         progInput.write('How are you ?\n')
+        progInput.write('aersdsd azej qsdfs\n')  # Unknown words
+        progInput.write('é"[)=è^$*::!\n')  # Encoding
+        progInput.write('ae e qsd, qsd 45 zeo h qfo k zedo. h et qsd qsfjze sfnj zjksdf zehkqf jkzae?\n')  # Too long sentences
         progInput.write('exit\n')
 
-        sys.stdin = progInput
+        #sys.stdin = progInput
 
-        self.chatbot.main(['--test', 'interactive'])
+        #self.chatbot.main(['--test', 'interactive', '--modelTag', 'unit-test'])
 
     def test_testing_daemon(self):
         pass

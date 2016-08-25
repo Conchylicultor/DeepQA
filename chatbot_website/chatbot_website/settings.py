@@ -134,7 +134,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file_django'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
         'chatbot_interface': {

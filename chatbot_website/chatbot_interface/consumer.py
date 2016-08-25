@@ -1,6 +1,7 @@
 from channels import Group
 from channels.sessions import channel_session
 import logging
+import sys
 import json
 
 from .chatbotmanager import ChatbotManager
@@ -38,20 +39,24 @@ def ws_receive(message):
     Args:
         message (Obj): object containing the client query
     """
-    # Get client infos
+    # Get client info
     clientName = message.channel_session['room']
-    logger.info('Prediction from: {}'.format(clientName))
     data = json.loads(message['text'])
 
     # Compute the prediction
     question = data['message']
-    logger.info('Q: {}'.format(question))
-    answer = ChatbotManager.callBot(question)
-    logger.info('A: {}'.format(answer))
+    try:
+        answer = ChatbotManager.callBot(question)
+    except:  # Catching all possible mistakes
+        logger.error('{}: Error with this question {}'.format(clientName, question))
+        logger.error("Unexpected error:", sys.exc_info()[0])
+        answer = 'Error: Internal problem'
     
     # Check eventual error
     if not answer:
         answer = 'Error: Try a shorter sentence'
+    
+    logger.info('{}: {} -> {}'.format(clientName, question, answer))
 
     # Send the prediction back
     Group(clientName).send({'text': json.dumps({'message': answer})})
