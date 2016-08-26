@@ -59,6 +59,8 @@ python manage.py runserver
 
 After launch, the interface should be available on [http://localhost:8000/](http://localhost:8000/).
 
+[![Chatbot web interface](http://e-pot.xyz/cv/thumb_chatbot.png)](http://e-pot.xyz/cv/chatbot.png)
+
 ## Results
 
 To quickly get some results, the best way is to reduce the sentence length to 5. The network seems to learn correctly, but it's not really chatty:
