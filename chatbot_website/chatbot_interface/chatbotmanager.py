@@ -12,16 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 class ChatbotManager:
+    """ Manage a single instance of the chatbot shared over the website
+    """
     bot = None
 
     @staticmethod
     def initBot():
         """ Instantiate the chatbot for later use
-        Warning: Should be called only once!
+        Should be called only once
         """
-        logger.info('Initializing bot...')
-        ChatbotManager.bot = chatbot.Chatbot()
-        ChatbotManager.bot.main(['--modelTag', 'server', '--test', 'daemon', '--rootDir', chatbotPath])
+        if not ChatbotManager.bot:
+            logger.info('Initializing bot...')
+            ChatbotManager.bot = chatbot.Chatbot()
+            ChatbotManager.bot.main(['--modelTag', 'server', '--test', 'daemon', '--rootDir', chatbotPath])
+        else:
+            logger.info('Bot already initialized.')
 
     @staticmethod
     def callBot(sentence):

@@ -188,7 +188,7 @@ class Chatbot:
                 self.predictTestset(self.sess)
                 print('All predictions done')
             elif self.args.test == Chatbot.TestMode.DAEMON:
-                print('Daemon mode, running in background...')  # TODO: Implement interface predict() and close()
+                print('Daemon mode, running in background...')
             else:
                 raise RuntimeError('Unknown test mode: {}'.format(self.args.test))  # Should never happen
         else:

@@ -75,6 +75,13 @@ How old ?
 Are you ?
 What are ?
 Where is ?
+Who ?
+Who did ?
+Who has ?
+Where ?
+When ?
+Which ?
+Which one ?
 The what ?
 Say "table".
 Say 'table'.
@@ -119,6 +126,8 @@ what do you think about bill gates ?
 what happens if machines can think ?
 what is the greatest novel every written ?
 have you hurt anyone ?
+Do you have a girlfriend?
+Do you have a boyfriend?
 1992
 1992.
 1992!
@@ -153,6 +162,10 @@ Which year
 Which year?
 Which year is it ?
 What time is it ?
+Which color ?
+What color ?
+What time ?
+NOTHING.
 Hi john!
 Are you a man or a woman ?
 Are you a woman or a man ?
