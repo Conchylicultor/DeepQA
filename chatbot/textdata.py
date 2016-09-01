@@ -26,7 +26,6 @@ import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
 import random
-import warnings  # Should be temporary
 
 from chatbot.cornelldata import CornellData
 
@@ -129,10 +128,10 @@ class TextData:
             assert len(batch.decoderSeqs[i]) <= self.args.maxLengthDeco
 
             # Add padding & define weight
-            batch.encoderSeqs[i]   = [self.word2id["<pad>"]] * (self.args.maxLengthEnco  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
+            batch.encoderSeqs[i]   = [self.padToken] * (self.args.maxLengthEnco  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
             batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (self.args.maxLengthDeco - len(batch.targetSeqs[i])))
-            batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.word2id["<pad>"]] * (self.args.maxLengthDeco - len(batch.decoderSeqs[i]))
-            batch.targetSeqs[i]  = batch.targetSeqs[i]  + [self.word2id["<pad>"]] * (self.args.maxLengthDeco - len(batch.targetSeqs[i]))
+            batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.padToken] * (self.args.maxLengthDeco - len(batch.decoderSeqs[i]))
+            batch.targetSeqs[i]  = batch.targetSeqs[i]  + [self.padToken] * (self.args.maxLengthDeco - len(batch.targetSeqs[i]))
 
         # Simple hack to reshape the batch
         encoderSeqsT = []  # Corrected orientation

@@ -219,8 +219,8 @@ class Chatbot:
         try:  # If the user exit while training, we still try to save the model
             for e in range(self.args.numEpochs):
 
-                print("--- Epoch {}/{} ; (lr={})".format(e+1, self.args.numEpochs, self.args.learningRate))
                 print()
+                print("----- Epoch {}/{} ; (lr={}) -----".format(e+1, self.args.numEpochs, self.args.learningRate))
 
                 batches = self.textData.getBatches()
 
@@ -293,6 +293,7 @@ class Chatbot:
         """
         # TODO: If verbose mode, also show similar sentences from the training set with the same words (include in mainTest also)
         # TODO: Also show the top 10 most likely predictions for each predicted output (when verbose mode)
+        # TODO: Log the questions asked for latter re-use (merge with test/samples.txt)
 
         print('Testing: Launch interactive mode:')
         print('')
@@ -304,27 +305,36 @@ class Chatbot:
             if question == '' or question == 'exit':
                 break
 
-            answer = self.singlePredict(question)
+            questionSeq = []  # Will be contain the question as seen by the encoder
+            answer = self.singlePredict(question, questionSeq)
             if not answer:
                 print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
                 continue  # Back to the beginning, try again
 
-            # TODO: print(self.textData.batchSeq2str(batch.encoderSeqs, clean=True, reverse=True))
-
             print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
-            print(self.textData.sequence2str(answer))
+            
+            if self.args.verbose:
+                print(self.textData.batchSeq2str(questionSeq, clean=True, reverse=True))
+                print(self.textData.sequence2str(answer))
+            
             print()
 
-    def singlePredict(self, question):
+    def singlePredict(self, question, questionSeq=None):
         """ Predict the sentence
         Args:
             question (str): the raw input sentence
+            questionSeq (List<int>): output argument. If given will contain the input batch sequence
         Return:
             list <int>: the word ids corresponding to the answer
         """
+        # Create the input batch
         batch = self.textData.sentence2enco(question)
         if not batch:
             return None
+        if questionSeq is not None:  # If the caller want to have the real input
+            questionSeq.extend(batch.encoderSeqs)
+
+        # Run the model
         ops, feedDict = self.model.step(batch)
         output = self.sess.run(ops[0], feedDict)  # TODO: Summarize the output too (histogram, ...)
         answer = self.textData.deco2sentence(output)
@@ -379,7 +389,7 @@ class Chatbot:
                 print('Model restored.')
             elif self._getModelList():
                 print('Conflict with previous models.')
-                raise RuntimeError('Some models are already present in \'{}\'. You should check them first'.format(self.modelDir))
+                raise RuntimeError('Some models are already present in \'{}\'. You should check them first (or re-try with the keepAll flag)'.format(self.modelDir))
             else:  # No other model to conflict with (probably summary files)
                 print('No previous model found, but some files found at {}. Cleaning...'.format(self.modelDir))  # Warning: No confirmation asked
                 self.args.reset = True

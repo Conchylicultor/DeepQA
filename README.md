@@ -32,11 +32,15 @@ The web interface require some additional packages:
 
 To train the model, simply run `main.py`. Once trained, you can test the results with `main.py --test` (results generated in 'save/model/samples_predictions.txt') or `main.py --test interactive` (more fun).
 
-A small script exist (`trainner.py`) to launch multiple training with different parameters but its not complete yet.
+Some flags which could be useful. For more help and options, use `python main.py -h`:
+ * `--modelTag <name>`: allow to give a name to the current model to differentiate between them when testing/training.
+ * `--keelAll`: use this flag when training if when testing, you want to see the predictions at different steps (it can be interesting to see the program changes its name and age as the training progress). Warning: It can quickly take a lot of storage space if you don't increase the `--saveEvey` option.
+ * `--verbose`: when testing, will print the sentences as they are computed.
+ * `--playDataset`: show some dialogue samples from the dataset (can be use conjointly with `--createDataset` if this is the only action you want to perform).
 
-To visualize the computational graph and the cost with [TensorBoard](https://www.tensorflow.org/versions/r0.10/how_tos/summaries_and_tensorboard/index.html), just run `tensorboard --logdir save/`. For more help and options, use `python main.py -h`.
+To visualize the computational graph and the cost with [TensorBoard](https://www.tensorflow.org/versions/r0.10/how_tos/summaries_and_tensorboard/index.html), just run `tensorboard --logdir save/`. .
 
-By default, the network architecture is a standard encoder/decoder with two LSTM layers (hidden size of 256) and an embedding size for the vocabulary of 32. The network is trained using ADAM.
+By default, the network architecture is a standard encoder/decoder with two LSTM layers (hidden size of 256) and an embedding size for the vocabulary of 32. The network is trained using ADAM. The maximum length sentence is set to 10 words.
 
 ### Web interface
 
@@ -63,7 +67,8 @@ After launch, the interface should be available on [http://localhost:8000/](http
 
 ## Results
 
-To quickly get some results, the best way is to reduce the sentence length to 5. The network seems to learn correctly, but it's not really chatty:
+Surprisingly, it's possible to get some results after only 1 or 2 hours of training (on a GeForce GT 740M), by drastically reducing the input sequence to 5 words and output to 3 (plus the `go` and `eos` tokens). Since then I modified the code and now the output length has to match the input one but you can still reproduce the original results, using [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1).
+Of course, the network won't be really chatty:
 
     Q: Hi
     A: Hi.
@@ -85,9 +90,6 @@ To quickly get some results, the best way is to reduce the sentence length to 5.
     
     Q: That's not nice
     A: Yeah.
-    
-    Q: Do you love me ?
-    A: Of course.
 
 Here is some case where it fails:
 
@@ -106,22 +108,33 @@ Here is some case where it fails:
     Q: Two plus two
     A: manny...
 
-To reproduce the results, first precompute the dataset with:
+With longer sentences, the network is much slower to train. After 250000 iterations with maxLength=10, the network still mainly gives evasive answers (by answering most of the open ended questions by 'I don't know') but it seems to have integrated some basic semantic:
 
-    python main.py --createDataset --maxLength 5 --playDataset
+    Q: When are the fireworks ?
+    A: Tomorrow.
+    
+    Q: What color ?
+    A: Gray.
+    
+    Q: Which apple ?
+    A: That's the first one.
+    
+    Q: What time is it ?
+    A: Eleven o'clock.
+    
+    Q: Who is Skywalker ?
+    A: She's a freelance bio-exorcist.
+    
+    Q: Who is John ?
+    A: The old man.
+    
+    Q: Who is Jenny ?
+    A: The man who killed herself.
 
-The last argument will read some samples from the training set, so you can have an idea about what it looks like. Then you can train the model with:
+    Q: When were you born ?
+    A: Soon.
 
-    python main.py --maxLength 5 --modelTag first-try --numEpochs 10
-
-The `--modelTag` option is optional (it's just to avoid conflict between the different models). You can also use the option `--keepAll` if during testing, you want to see the predictions at different steps (it's interesting to see the program changes its name and age as the training progress). Finally, show the results with one of the two commands:
-
-    python main.py --test --verbose --modelTag first-try
-    python main.py --test interactive --modelTag first-try
-
-The results are shown after 20000 iterations. With my state-of-the-art GeForce GT 740M, it took about 2h to train the model with the previous arguments, which is still relatively fast (since then, I made some code modifications so currently it should takes longer. To reproduce the original results, use [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1)).
-
-With longer sentences, the network is much slower to train. After 150000 iterations with maxLength=10, the network still mainly gives garbadge answers (basically answer all open ended questions by 'I don't know'). Among those, we can still find some interesting (or creepy) ones:
+As shown on the last questions, the network still do some confusion between the genders and the present/future. I also tried some deeper questions with more or less success.
 
     Q: What is the purpose of being intelligent ?
     A: The man are obsolete.
@@ -132,16 +145,32 @@ With longer sentences, the network is much slower to train. After 150000 iterati
     Q: What is morality ?
     A: The worst.
     
+    Q: What is the purpose of existence ?
+    A: It 's private.
+
+The model I trained is quite limited by the embedding size I put and by its size. Its 'thought vectors' is also probably too small to answer the kind of following:
+
+    Q: My name is David. What is my name ?
+    A: Debbie.
+    
+    Q: My name is John. What is my name ?
+    A: Carl Smith.
+    
     Q: How many legs does a cat have ?
     A: Four.
     
     Q: How many legs does a spider have ?
     A: Four.
     
-    Q: I really like our discussion on morality and ethics...
-    A: You're not going anywhere.
-    
-    Q: !
-    A: I'm not going to die !
+    Q: Do you prefer football or soccer ?
+    A: Whiskey.
 
-Still not perfect but it seems to go in the right direction.
+It also seems to overfit as sometimes he will just pop out sentences from its training set unrelated to the question. Adding some dropout should reduce the issue.
+
+    Q: I play tennis. What do I play ?
+    A: I'm going to get laid.
+    
+    Q: What color is the sky?
+    A: One of the deputies is everywhere.
+
+You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing). Don't expect spectacular results though. If you have a high-end GPU, you could try to increase the network parameters and train a better model.
