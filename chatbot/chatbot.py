@@ -524,7 +524,7 @@ class Chatbot:
             str: The name of the device on which run the program
         """
         if self.args.device == 'cpu':
-            return '"/cpu:0'
+            return '/cpu:0'
         elif self.args.device == 'gpu':
             return '/gpu:0'
         elif self.args.device is None:  # No specified device (default)

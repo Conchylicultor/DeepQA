@@ -10,7 +10,7 @@ For now, it use the [Cornell Movie Dialogs](http://www.cs.cornell.edu/~cristian/
 
 ## Installation
 
-The program require the following dependecies (easy to install using pip):
+The program require the following dependencies (easy to install using pip):
  * python 3
  * tensorflow (tested with v0.9.0)
  * numpy
@@ -67,7 +67,7 @@ After launch, the interface should be available on [http://localhost:8000/](http
 
 ## Results
 
-Surprisingly, it's possible to get some results after only 1 or 2 hours of training (on a GeForce GT 740M), by drastically reducing the input sequence to 5 words and output to 3 (plus the `go` and `eos` tokens). Since then I modified the code and now the output length has to match the input one but you can still reproduce the original results, using [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1).
+Surprisingly, it's possible to get some results after only 1 or 2 hours of training (on a GeForce GT 740M), by drastically reducing the input sequence to 5 words and output to 3 (plus the `go` and `eos` tokens) and by using a small embedding size (something like 25). Since then I modified the code and now the output length has to match the input one but you can still reproduce the original results, using [this version](https://github.com/Conchylicultor/DeepQA/tree/92863e2929580818f866f16969909fe2093d41d1).
 Of course, the network won't be really chatty:
 
     Q: Hi
