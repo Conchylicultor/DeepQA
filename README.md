@@ -2,15 +2,15 @@
 
 ## Presentation
 
-This work try to reproduce the results in [A Neural Conversational Model](http://arxiv.org/abs/1506.05869) (aka the Google chatbot). It use a RNN (seq2seq model) for sentence predictions. It is done using python and TensorFlow.
+This work tries to reproduce the results of [A Neural Conversational Model](http://arxiv.org/abs/1506.05869) (aka the Google chatbot). It uses a RNN (seq2seq model) for sentence predictions. It is done using python and TensorFlow.
 
-The program is inspired of the Torch [neuralconvo](https://github.com/macournoyer/neuralconvo) from [macournoyer](https://github.com/macournoyer), at least for the loading corpus part.
+The loading corpus part of the program is inspired by the Torch [neuralconvo](https://github.com/macournoyer/neuralconvo) from [macournoyer](https://github.com/macournoyer).
 
-For now, it use the [Cornell Movie Dialogs](http://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html) corpus but one of the long terms goal is to test it on bigger corpus.
+For now, it uses the [Cornell Movie Dialogs](http://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html) corpus, but one of the long-term goal is to test it on bigger corpus.
 
 ## Installation
 
-The program require the following dependencies (easy to install using pip):
+The program requires the following dependencies (easy to install using pip):
  * python 3
  * tensorflow (tested with v0.9.0)
  * numpy
@@ -20,7 +20,7 @@ The program require the following dependencies (easy to install using pip):
 
 The Cornell dataset is already included.
 
-The web interface require some additional packages:
+The web interface requires some additional packages:
  * django (tested with 1.10)
  * channels
  * Redis (see [here](http://redis.io/topics/quickstart))
@@ -32,15 +32,15 @@ The web interface require some additional packages:
 
 To train the model, simply run `main.py`. Once trained, you can test the results with `main.py --test` (results generated in 'save/model/samples_predictions.txt') or `main.py --test interactive` (more fun).
 
-Some flags which could be useful. For more help and options, use `python main.py -h`:
+Here are some flags which could be useful. For more help and options, use `python main.py -h`:
  * `--modelTag <name>`: allow to give a name to the current model to differentiate between them when testing/training.
  * `--keelAll`: use this flag when training if when testing, you want to see the predictions at different steps (it can be interesting to see the program changes its name and age as the training progress). Warning: It can quickly take a lot of storage space if you don't increase the `--saveEvey` option.
  * `--verbose`: when testing, will print the sentences as they are computed.
  * `--playDataset`: show some dialogue samples from the dataset (can be use conjointly with `--createDataset` if this is the only action you want to perform).
 
-To visualize the computational graph and the cost with [TensorBoard](https://www.tensorflow.org/versions/r0.10/how_tos/summaries_and_tensorboard/index.html), just run `tensorboard --logdir save/`. .
+To visualize the computational graph and the cost with [TensorBoard](https://www.tensorflow.org/versions/r0.10/how_tos/summaries_and_tensorboard/index.html), just run `tensorboard --logdir save/`.
 
-By default, the network architecture is a standard encoder/decoder with two LSTM layers (hidden size of 256) and an embedding size for the vocabulary of 32. The network is trained using ADAM. The maximum length sentence is set to 10 words.
+By default, the network architecture is a standard encoder/decoder with two LSTM layers (hidden size of 256) and an embedding size for the vocabulary of 32. The network is trained using ADAM. The maximum sentence length is set to 10 words, but can be increased.
 
 ### Web interface
 
@@ -106,7 +106,7 @@ Here is some case where it fails:
     A: No.
     
     Q: Two plus two
-    A: manny...
+    A: Manny...
 
 With longer sentences, the network is much slower to train. After 250000 iterations with maxLength=10, the network still mainly gives evasive answers (by answering most of the open ended questions by 'I don't know') but it seems to have integrated some basic semantic:
 
@@ -134,7 +134,7 @@ With longer sentences, the network is much slower to train. After 250000 iterati
     Q: When were you born ?
     A: Soon.
 
-As shown on the last questions, the network still do some confusion between the genders and the present/future. I also tried some deeper questions with more or less success.
+As shown on the last questions, the network still does some confusion between the genders and the present/future. I also tried some deeper philosophical questions with more or less success.
 
     Q: What is the purpose of being intelligent ?
     A: The man are obsolete.
@@ -147,8 +147,11 @@ As shown on the last questions, the network still do some confusion between the 
     
     Q: What is the purpose of existence ?
     A: It 's private.
+    
+    Q: What happens if machines can think ?
+    A: I think I'll just lie with you.
 
-The model I trained is quite limited by the embedding size I put and by its size. Its 'thought vectors' is also probably too small to answer the kind of following:
+The model I trained is quite limited by the embedding size I put and by its size, and by the training corpus size. Its 'thought vector' is also probably too small to answer the kind of following:
 
     Q: My name is David. What is my name ?
     A: Debbie.
@@ -165,12 +168,12 @@ The model I trained is quite limited by the embedding size I put and by its size
     Q: Do you prefer football or soccer ?
     A: Whiskey.
 
-It also seems to overfit as sometimes he will just pop out sentences from its training set unrelated to the question. Adding some dropout should reduce the issue.
+It also seems to overfit as sometimes it will just pop out sentences from its training set unrelated to the question. Adding some dropout should reduce the issue.
 
     Q: I play tennis. What do I play ?
     A: I'm going to get laid.
     
-    Q: What color is the sky?
+    Q: What color is the sky ?
     A: One of the deputies is everywhere.
 
 You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing). Don't expect spectacular results though. If you have a high-end GPU, you could try to increase the network parameters and train a better model.
