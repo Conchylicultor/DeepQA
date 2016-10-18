@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -312,11 +310,11 @@ class Chatbot:
                 continue  # Back to the beginning, try again
 
             print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
-            
+
             if self.args.verbose:
                 print(self.textData.batchSeq2str(questionSeq, clean=True, reverse=True))
                 print(self.textData.sequence2str(answer))
-            
+
             print()
 
     def singlePredict(self, question, questionSeq=None):
@@ -489,7 +487,7 @@ class Chatbot:
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
-        
+
         # Keep track of the learning params (but without restoring them)
         config['Training (won\'t be restored)'] = {}
         config['Training (won\'t be restored)']['learningRate'] = str(self.args.learningRate)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +29,7 @@ class Model:
     Achitecture:
         2 LTSM layers
     """
-    
+
     def __init__(self, args, textData):
         """
         Args:
@@ -113,7 +111,7 @@ class Model:
                 epsilon=1e-08
             )
             self.optOp = opt.minimize(self.lossFct)
-    
+
     def step(self, batch):
         """ Forward/training step operation.
         Does not perform run on itself but just return the operators to do so. Those have then to be run
