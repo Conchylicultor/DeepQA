@@ -1,7 +1,7 @@
 version: '2'
 services:
   web:
-    image: af.cds.bns:5001/cmo/deepqa
+    image: deepqa:latest
     ports:
       - "8000:8000"
     volumes:

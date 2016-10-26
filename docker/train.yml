@@ -1,7 +1,7 @@
 version: '2'
 services:
   train_2:
-    image: af.cds.bns:5001/cmo/deepqa
+    image: deepqa:latest
     working_dir: /root/DeepQA
     command: [python, -u, main.py, --maxLength, '15', --numEpochs, '30', --corpus, 'switchboard.txt']
     #ports:
