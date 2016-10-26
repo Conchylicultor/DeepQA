@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +44,7 @@ class TextData:
     """Dataset class
     Warning: No vocabulary limit
     """
-
+    
     def __init__(self, args):
         """Load all conversations
         Args:
@@ -52,20 +54,20 @@ class TextData:
         self.args = args
 
         # Path variables
-        self.corpusDir = os.path.join(self.args.rootDir, 'data/cornell/')
-        self.samplesDir = os.path.join(self.args.rootDir, 'data/samples/')
+        self.corpusDir = os.path.join(self.args.rootDir, 'train/')
+        self.samplesDir = os.path.join(self.args.rootDir, 'model/')
         self.samplesName = self._constructName()
-
+        
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
         self.eosToken = -1  # End of sequence
         self.unknownToken = -1  # Word dropped from vocabulary
-
+        
         self.trainingSamples = []  # 2d array containing each question and his answer [[input,target]]
-
+        
         self.word2id = {}
         self.id2word = {}  # For a rapid conversion
-
+        
         self.loadCorpus(self.samplesDir)
 
         # Plot some stats:
@@ -115,11 +117,17 @@ class TextData:
         for i in range(batchSize):
             # Unpack the sample
             sample = samples[i]
+
+            #print ("Here are the sample: ")
+            #print (sample)
+
             if not self.args.test and self.args.watsonMode:  # Watson mode: invert question and answer
                 sample = list(reversed(sample))
             batch.encoderSeqs.append(list(reversed(sample[0])))  # Reverse inputs (and not outputs), little trick as defined on the original seq2seq paper
             batch.decoderSeqs.append([self.goToken] + sample[1] + [self.eosToken])  # Add the <go> and <eos> tokens
             batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
+            #print (batch.encoderSeqs)
+            #print (batch.decoderSeqs)
 
             # Long sentences should have been filtered during the dataset creation
             assert len(batch.encoderSeqs[i]) <= self.args.maxLengthEnco
@@ -171,7 +179,7 @@ class TextData:
             list<Batch>: Get a list of the batches for the next epoch
         """
         self.shuffle()
-
+        
         batches = []
 
         def genNextSamples():
@@ -184,21 +192,21 @@ class TextData:
             batch = self._createBatch(samples)
             batches.append(batch)
         return batches
-
+    
     def getSampleSize(self):
         """Return the size of the dataset
         Return:
             int: Number of training samples
         """
         return len(self.trainingSamples)
-
+    
     def getVocabularySize(self):
         """Return the number of words present in the dataset
         Return:
             int: Number of word on the loader corpus
         """
         return len(self.word2id)
-
+        
     def loadCorpus(self, dirName):
         """Load/create the conversations data
         Args:
@@ -207,28 +215,29 @@ class TextData:
         datasetExist = False
         if os.path.exists(os.path.join(dirName, self.samplesName)):
             datasetExist = True
-
+        
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
-            cornellData = CornellData(self.corpusDir)
-            self.createCorpus(cornellData.getConversations())
+            cornellData = CornellData(self.corpusDir, self.args.corpus)
 
+            self.createCorpus(cornellData.getConversations())
+            
             # Saving
             print('Saving dataset...')
             self.saveDataset(dirName)  # Saving tf samples
         else:
             print('Loading dataset from {}...'.format(dirName))
             self.loadDataset(dirName)
-
+        
         assert self.padToken == 0
-
+        
     def saveDataset(self, dirName):
         """Save samples to file
         Args:
             dirName (str): The directory where to load/save the model
         """
-
+        
         with open(os.path.join(dirName, self.samplesName), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
                 "word2id": self.word2id,
@@ -247,7 +256,7 @@ class TextData:
             self.word2id = data["word2id"]
             self.id2word = data["id2word"]
             self.trainingSamples = data["trainingSamples"]
-
+            
             self.padToken = self.word2id["<pad>"]
             self.goToken = self.word2id["<go>"]
             self.eosToken = self.word2id["<eos>"]
@@ -261,9 +270,9 @@ class TextData:
         self.goToken = self.getWordId("<go>")  # Start of sequence
         self.eosToken = self.getWordId("<eos>")  # End of sequence
         self.unknownToken = self.getWordId("<unknown>")  # Word dropped from vocabulary
-
+        
         # Preprocessing data
-
+        #print (conversations)
         for conversation in tqdm(conversations, desc="Extract conversations"):
             self.extractConversation(conversation)
 
@@ -272,20 +281,72 @@ class TextData:
     def extractConversation(self, conversation):
         """Extract the sample lines from the conversations
         Args:
-            conversation (Obj): a conversation object containing the lines to extract
+            conversation (Obj): a convesation object containing the lines to extract
         """
-
+ 
+        #print ('')
+        #print ('')
+        #conversation = {'lines': [{'i am still with you mister Shill thank you so much. so i have a question so do you have any type of insurance with scotiabank then a life insurance\n','A: '}, {'B: ', 'yes we do\n'}]}
+        #print (conversation)
         # Iterate over all the lines of the conversation
+        for i in range(len(conversation) - 1):
+            #print ("Input Line: ")
+            inputLine = (conversation[i])
+            #print (inputLine)
+            #print ("Target Line: ")
+            targetLine = (conversation[i+1])
+            #print (targetLine)
+
+            if ("A: " in inputLine):
+                inputLine = inputLine.replace("A: ", '')
+            if ("A: " in targetLine):
+                targetLine = targetLine.replace('A: ','')
+            if ("B: " in inputLine):
+                inputLine = inputLine.replace('B: ', '')
+            if ("B: " in targetLine):
+                targetLine = targetLine.replace('B: ','')
+            if ("C: " in inputLine):
+                inputLine = inputLine.replace('C: ', '')
+            if ("C: " in targetLine):
+                targetLine = targetLine.replace('C: ','')
+
+            #inputLine = inputLine.strip()
+            #targetLine = targetLine.strip()
+
+            #print ("Extracting inputLine: ")
+            inputWords = self.extractText(inputLine)
+            #print ("Input Words: ")
+            #print (inputWords)
+
+            #print("Extracting targetLine: ")
+            targetWords = self.extractText(targetLine, True)
+            #print ("Target Words: ")
+            #print (targetWords)
+
+            if inputWords and targetWords:
+                self.trainingSamples.append([inputWords, targetWords])
+                #exit()
+            #print (inputWords)
+            #print (outputWords)
+            #exit()
+
+            #if i == 2:
+            #    exit()
+        '''
         for i in range(len(conversation["lines"]) - 1):  # We ignore the last line (no answer for it)
             inputLine  = conversation["lines"][i]
             targetLine = conversation["lines"][i+1]
-
-            inputWords  = self.extractText(inputLine["text"])
-            targetWords = self.extractText(targetLine["text"], True)
-
+            inputLine = {'A: ':'bank my name is Lynn. how may i help with your credit account?\n'}
+            print (inputLine)
+            inputWords  = self.extractText(inputLine["A: "])            
+            targetWords = self.extractText(targetLine["B: "], True)
+            print (inputWords)
+            print (targetWords)
+            exit()
             if inputWords and targetWords:  # Filter wrong samples (if one of the list is empty)
                 self.trainingSamples.append([inputWords, targetWords])
-
+                #print (self.trainingSamples)
+        '''
     def extractText(self, line, isTarget=False):
         """Extract the words from a sample lines
         Args:
@@ -295,9 +356,13 @@ class TextData:
             list<int>: the list of the word ids of the sentence
         """
         words = []
-
+        #line = 'bank my name is Lynn how may i help with your credit account?'
         # Extract sentences
+        #print (line)
         sentencesToken = nltk.sent_tokenize(line)
+        #print (sentencesToken)
+        #print ("Sentences Token: ")
+        #print (sentencesToken)
 
         # We add sentence by sentence until we reach the maximum length
         for i in range(len(sentencesToken)):
@@ -307,18 +372,29 @@ class TextData:
                 i = len(sentencesToken)-1 - i
 
             tokens = nltk.word_tokenize(sentencesToken[i])
+            #print ("Tokens: ")
+            #print (tokens)
 
             # If the total length is not too big, we still can add one more sentence
             if len(words) + len(tokens) <= self.args.maxLength:
                 tempWords = []
                 for token in tokens:
+                    #print ("tempWords: ")
                     tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
-
+                    #print (tempWords)
                 if isTarget:
                     words = words + tempWords
+                    #print("TempWords: ")
+                    #print (tempWords)
+                    #print ("isTarget: ")
+                    #print (words)
                 else:
                     words = tempWords + words
+                    #print ("Otherwise: ")
+                    #print (words)
             else:
+                #print (" Break ")
+                #print (i)
                 break  # We reach the max length already
 
         return words
@@ -338,7 +414,7 @@ class TextData:
 
         # Get the id if the word already exist
         wordId = self.word2id.get(word, -1)
-
+        
         # If not, we create a new entry
         if wordId == -1:
             if create:
@@ -347,7 +423,7 @@ class TextData:
                 self.id2word[wordId] = word
             else:
                 wordId = self.unknownToken
-
+        
         return wordId
 
     def printBatch(self, batch):

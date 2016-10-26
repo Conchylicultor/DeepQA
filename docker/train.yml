@@ -1,0 +1,18 @@
+version: '2'
+services:
+  train_2:
+    image: af.cds.bns:5001/cmo/deepqa
+    working_dir: /root/DeepQA
+    command: [python, -u, main.py, --maxLength, '15', --numEpochs, '30', --corpus, 'switchboard.txt']
+    #ports:
+    #  - "8000:8000"
+    #command: [python, -u, main.py, --test]
+    volumes:
+      - ~/deepQA/logs:/root/DeepQA/logs
+      - ~/deepQA/model:/root/DeepQA/model
+      - ~/deepQA/model:/root/DeepQA/model-server
+      - ~/deepQA/train:/root/DeepQA/train
+    #depends_on:
+    #  - redis
+  #redis:
+    #image: redis

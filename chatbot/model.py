@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +31,7 @@ class Model:
     Achitecture:
         2 LTSM layers
     """
-
+    
     def __init__(self, args, textData):
         """
         Args:
@@ -68,6 +70,7 @@ class Model:
             #encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=1.0)  # TODO: Custom values (WARNING: No dropout when testing !!!)
             encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
 
+        
         # Network input (placeholders)
 
         with tf.name_scope('placeholder_encoder'):
@@ -81,7 +84,8 @@ class Model:
         # Define the network
         # Here we use an embedding model, it takes integer as input and convert them into word vector for
         # better word representation
-        decoderOutputs, states = tf.nn.seq2seq.embedding_rnn_seq2seq(
+        # decoderOutputs, states = tf.nn.seq2seq.embedding_rnn_seq2seq(
+        decoderOutputs, states = tf.nn.seq2seq.embedding_attention_seq2seq(
             self.encoderInputs,  # List<[batch=?, inputDim=1]>, list of size args.maxLength
             self.decoderInputs,  # For training, we force the correct output (feed_previous=False)
             encoDecoCell,
@@ -111,7 +115,7 @@ class Model:
                 epsilon=1e-08
             )
             self.optOp = opt.minimize(self.lossFct)
-
+    
     def step(self, batch):
         """ Forward/training step operation.
         Does not perform run on itself but just return the operators to do so. Those have then to be run

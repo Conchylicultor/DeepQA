@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +64,7 @@ class Chatbot:
         self.sess = None
 
         # Filename and directories constants
-        self.MODEL_DIR_BASE = 'save/model'
+        self.MODEL_DIR_BASE = 'model'
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
@@ -222,12 +224,20 @@ class Chatbot:
 
                 batches = self.textData.getBatches()
 
+                #print ("Printing batches: \n")
+                #print (batches)
+                #exit()
                 # TODO: Also update learning parameters eventually
 
                 tic = datetime.datetime.now()
                 for nextBatch in tqdm(batches, desc="Training"):
                     # Training pass
                     ops, feedDict = self.model.step(nextBatch)
+                    #print ("Printing ops: \n")
+                    #print (ops)
+                    #print ("Printing feedDict: \n")
+                    #print (feedDict)
+
                     assert len(ops) == 2  # training, loss
                     _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
                     self.writer.add_summary(summary, self.globStep)
@@ -310,11 +320,11 @@ class Chatbot:
                 continue  # Back to the beginning, try again
 
             print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
-
+            
             if self.args.verbose:
                 print(self.textData.batchSeq2str(questionSeq, clean=True, reverse=True))
                 print(self.textData.sequence2str(answer))
-
+            
             print()
 
     def singlePredict(self, question, questionSeq=None):
@@ -395,8 +405,11 @@ class Chatbot:
             if self.args.reset:
                 fileList = [os.path.join(self.modelDir, f) for f in os.listdir(self.modelDir)]
                 for f in fileList:
-                    print('Removing {}'.format(f))
-                    os.remove(f)
+                    if f.endswith(".pkl"):
+                        continue
+                    else:
+                        print('Removing {}'.format(f))
+                        os.remove(f)
 
         else:
             print('No previous model found, starting from clean directory: {}'.format(self.modelDir))
@@ -487,7 +500,7 @@ class Chatbot:
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
-
+        
         # Keep track of the learning params (but without restoring them)
         config['Training (won\'t be restored)'] = {}
         config['Training (won\'t be restored)']['learningRate'] = str(self.args.learningRate)
