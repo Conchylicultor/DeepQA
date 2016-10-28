@@ -3,7 +3,7 @@
 FROM python:3.5.2
 MAINTAINER vt
 
-ARG TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.9.0-cp35-cp35m-linux_x86_64.whl
+ARG TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow-0.10.0-cp35-cp35m-linux_x86_64.whl
 
 ENV CHATBOT_SECRET_KEY="my-secret-key"
 
