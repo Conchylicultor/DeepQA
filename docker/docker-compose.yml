@@ -1,0 +1,15 @@
+version: '2'
+services:
+  web:
+    image: deepqa:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/deepQA/logs:/root/DeepQA/logs
+      - ~/deepQA/model:/root/DeepQA/save/model
+      - ~/deepQA/model:/root/DeepQA/save/model-server
+      - ~/deepQA/samples:/root/DeepQA/data/samples
+    depends_on:
+      - redis
+  redis:
+    image: redis
