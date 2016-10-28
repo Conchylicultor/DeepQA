@@ -9,16 +9,18 @@ ENV CHATBOT_SECRET_KEY="my-secret-key"
 
 ## dependencies
 RUN \
-  apt-get -qq -y update && apt-get -y install \
-  unzip && \
-  pip3 install -U $TF_BINARY_URL \
-  nltk \
+  apt-get -qq -y update && apt-get -y install unzip
+  
+RUN  \
+  pip3 install -U nltk \
   tqdm \
   django \
   asgi_redis \
   channels && \
   python3 -m nltk.downloader punkt
 
+RUN \
+  pip3 install -U $TF_BINARY_URL
 
 COPY ./ /root/DeepQA
 
