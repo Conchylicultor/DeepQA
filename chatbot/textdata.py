@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2015 Conchylicultor. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +42,7 @@ class TextData:
     """Dataset class
     Warning: No vocabulary limit
     """
-    
+
     def __init__(self, args):
         """Load all conversations
         Args:
@@ -57,17 +55,17 @@ class TextData:
         self.corpusDir = os.path.join(self.args.rootDir, 'data/cornell/')
         self.samplesDir = os.path.join(self.args.rootDir, 'data/samples/')
         self.samplesName = self._constructName()
-        
+
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
         self.eosToken = -1  # End of sequence
         self.unknownToken = -1  # Word dropped from vocabulary
-        
+
         self.trainingSamples = []  # 2d array containing each question and his answer [[input,target]]
-        
+
         self.word2id = {}
         self.id2word = {}  # For a rapid conversion
-        
+
         self.loadCorpus(self.samplesDir)
 
         # Plot some stats:
@@ -173,7 +171,7 @@ class TextData:
             list<Batch>: Get a list of the batches for the next epoch
         """
         self.shuffle()
-        
+
         batches = []
 
         def genNextSamples():
@@ -186,21 +184,21 @@ class TextData:
             batch = self._createBatch(samples)
             batches.append(batch)
         return batches
-    
+
     def getSampleSize(self):
         """Return the size of the dataset
         Return:
             int: Number of training samples
         """
         return len(self.trainingSamples)
-    
+
     def getVocabularySize(self):
         """Return the number of words present in the dataset
         Return:
             int: Number of word on the loader corpus
         """
         return len(self.word2id)
-        
+
     def loadCorpus(self, dirName):
         """Load/create the conversations data
         Args:
@@ -209,28 +207,28 @@ class TextData:
         datasetExist = False
         if os.path.exists(os.path.join(dirName, self.samplesName)):
             datasetExist = True
-        
+
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
             cornellData = CornellData(self.corpusDir)
             self.createCorpus(cornellData.getConversations())
-            
+
             # Saving
             print('Saving dataset...')
             self.saveDataset(dirName)  # Saving tf samples
         else:
             print('Loading dataset from {}...'.format(dirName))
             self.loadDataset(dirName)
-        
+
         assert self.padToken == 0
-        
+
     def saveDataset(self, dirName):
         """Save samples to file
         Args:
             dirName (str): The directory where to load/save the model
         """
-        
+
         with open(os.path.join(dirName, self.samplesName), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
                 "word2id": self.word2id,
@@ -249,7 +247,7 @@ class TextData:
             self.word2id = data["word2id"]
             self.id2word = data["id2word"]
             self.trainingSamples = data["trainingSamples"]
-            
+
             self.padToken = self.word2id["<pad>"]
             self.goToken = self.word2id["<go>"]
             self.eosToken = self.word2id["<eos>"]
@@ -263,7 +261,7 @@ class TextData:
         self.goToken = self.getWordId("<go>")  # Start of sequence
         self.eosToken = self.getWordId("<eos>")  # End of sequence
         self.unknownToken = self.getWordId("<unknown>")  # Word dropped from vocabulary
-        
+
         # Preprocessing data
 
         for conversation in tqdm(conversations, desc="Extract conversations"):
@@ -274,17 +272,17 @@ class TextData:
     def extractConversation(self, conversation):
         """Extract the sample lines from the conversations
         Args:
-            conversation (Obj): a convesation object containing the lines to extract
+            conversation (Obj): a conversation object containing the lines to extract
         """
-            
+
         # Iterate over all the lines of the conversation
         for i in range(len(conversation["lines"]) - 1):  # We ignore the last line (no answer for it)
             inputLine  = conversation["lines"][i]
             targetLine = conversation["lines"][i+1]
-            
+
             inputWords  = self.extractText(inputLine["text"])
             targetWords = self.extractText(targetLine["text"], True)
-            
+
             if inputWords and targetWords:  # Filter wrong samples (if one of the list is empty)
                 self.trainingSamples.append([inputWords, targetWords])
 
@@ -340,7 +338,7 @@ class TextData:
 
         # Get the id if the word already exist
         wordId = self.word2id.get(word, -1)
-        
+
         # If not, we create a new entry
         if wordId == -1:
             if create:
@@ -349,7 +347,7 @@ class TextData:
                 self.id2word[wordId] = word
             else:
                 wordId = self.unknownToken
-        
+
         return wordId
 
     def printBatch(self, batch):
