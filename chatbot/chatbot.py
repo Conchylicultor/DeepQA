@@ -113,7 +113,7 @@ class Chatbot:
         nnArgs.add_argument('--hiddenSize', type=int, default=256, help='number of hidden units in each RNN cell')
         nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
         nnArgs.add_argument('--embeddingSize', type=int, default=32, help='embedding size of the word representation')
-        nnArgs.add_argument('--softmaxSamples', type=int, default=512, help='Number of samples in the sampled softmax loss function. A value of 0 deactivates sampled softmax')
+        nnArgs.add_argument('--softmaxSamples', type=int, default=0, help='Number of samples in the sampled softmax loss function. A value of 0 deactivates sampled softmax')
         
         # Training options
         trainingArgs = parser.add_argument_group('Training options')
