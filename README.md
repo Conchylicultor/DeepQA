@@ -36,6 +36,8 @@ The web interface requires some additional packages:
  * Redis (see [here](http://redis.io/topics/quickstart))
  * asgi_redis
 
+A Docker installation is also available. More detailed instructions [here](docker/README.md).
+
 ## Running
 
 ### Chatbot
