@@ -1,0 +1,16 @@
+# TODO: CHECK WHY INITBOT IS PLOTED TWICE !!! ?
+# TODO: Make docker display chatbot module output (+ logs)
+version: '2'
+services:
+  web:
+    image: deepqa:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/deepQA/logs:/root/DeepQA/chatbot_website/logs
+      - ~/deepQA/save:/root/DeepQA/save
+      - ~/deepQA/data:/root/DeepQA/data
+    depends_on:
+      - redis
+  redis:
+    image: redis

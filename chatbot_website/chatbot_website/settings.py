@@ -101,11 +101,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+redis_url = os.environ.get('CHATBOT_REDIS_URL', 'localhost')
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgi_redis.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+            "hosts": [os.environ.get('REDIS_URL', 'redis://{}:6379'.format(redis_url))],
         },
         "ROUTING": "chatbot_interface.routing.channel_routing",
     },

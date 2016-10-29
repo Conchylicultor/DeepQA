@@ -3,15 +3,12 @@ services:
   train_2:
     image: deepqa:latest
     working_dir: /root/DeepQA
-    command: [python, -u, main.py, --maxLength, '15', --numEpochs, '30', --corpus, 'switchboard.txt']
-    #ports:
-    #  - "8000:8000"
+    command: [python, -u, main.py, --numEpochs, '30']
     #command: [python, -u, main.py, --test]
     volumes:
-      - ~/deepQA/logs:/root/DeepQA/logs
-      - ~/deepQA/model:/root/DeepQA/model
-      - ~/deepQA/model:/root/DeepQA/model-server
-      - ~/deepQA/train:/root/DeepQA/train
+      - ~/deepQA/logs:/root/DeepQA/chatbot_website/logs
+      - ~/deepQA/save:/root/DeepQA/save
+      - ~/deepQA/data:/root/DeepQA/data
     #depends_on:
     #  - redis
   #redis:
