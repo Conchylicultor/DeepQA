@@ -53,7 +53,7 @@ class Model:
         self.optOp = None
         self.outputs = None  # Outputs of the network, list of probability for each words
         
-        # Parameters of sampled softmax (needed for attention mechanism and a larg vocabulry size)
+        # Parameters of sampled softmax (needed for attention mechanism and a large vocabulary size)
         self.output_projection = None
         self.softmax_loss_function = None
         self.num_samples = self.args.softmaxSamples
@@ -90,12 +90,10 @@ class Model:
                 self.dtype)
           self.softmax_loss_function = sampled_loss
 
-
         # Creation of the rnn cell
-        with tf.variable_scope("chatbot_cell"):  # TODO: How to make this appear on the graph ?
-            encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
-            #encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=1.0)  # TODO: Custom values (WARNING: No dropout when testing !!!)
-            encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
+        encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
+        #encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=1.0)  # TODO: Custom values (WARNING: No dropout when testing !!!)
+        encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
 
         # Network input (placeholders)
 

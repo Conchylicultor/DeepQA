@@ -1,5 +1,15 @@
 # Deep Q&A
 
+#### Table of Contents
+
+* [Presentation](#presentation)
+* [Installation](#installation)
+* [Running](#running)
+    * [Chatbot](#chatbot)
+    * [Web interface](#web-interface)
+* [Results](#results)
+* [Improvements](#improvements)
+
 ## Presentation
 
 This work tries to reproduce the results of [A Neural Conversational Model](http://arxiv.org/abs/1506.05869) (aka the Google chatbot). It uses a RNN (seq2seq model) for sentence predictions. It is done using python and TensorFlow.
@@ -61,7 +71,7 @@ redis-server &
 python manage.py runserver
 ```
 
-After launch, the interface should be available on [http://localhost:8000/](http://localhost:8000/).
+After launch, the interface should be available on [http://localhost:8000/](http://localhost:8000/). If you want to deploy the program on a server, use `python manage.py runserver 0.0.0.0` instead. More info [here](https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/).
 
 [![Chatbot web interface](http://e-pot.xyz/cv/thumb_chatbot.png)](http://e-pot.xyz/cv/chatbot.png)
 
