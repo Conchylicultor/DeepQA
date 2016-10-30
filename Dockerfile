@@ -25,7 +25,7 @@ COPY ./ /root/DeepQA
 
 ## Run Config
 
-# Generate your own key if you want depoly on a server
+# You should generate your own key if you want deploy it on a server
 ENV CHATBOT_SECRET_KEY="e#0y6^6mg37y9^+t^p_$xwnogcdh=27)f6_=v^$bh9p0ihd-%v"
 ENV CHATBOT_REDIS_URL="redis"
 EXPOSE 8000
