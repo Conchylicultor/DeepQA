@@ -170,7 +170,7 @@ class Chatbot:
         self.sess = tf.Session()  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
         print('Initialize variables...')
-        self.sess.run(tf.initialize_all_variables())
+        self.sess.run(tf.global_variables_initializer())
 
         # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
         if self.args.test != Chatbot.TestMode.ALL:
