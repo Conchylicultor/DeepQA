@@ -157,7 +157,7 @@ class Chatbot:
             self.model = Model(self.args, self.textData)
 
         # Saver/summaries
-        self.writer = tf.train.SummaryWriter(self._getSummaryName())
+        self.writer = tf.summary.FileWriter(self._getSummaryName())
         self.saver = tf.train.Saver(max_to_keep=200)  # Arbitrary limit ?
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
@@ -207,7 +207,7 @@ class Chatbot:
 
         self.textData.makeLighter(self.args.ratioDataset)  # Limit the number of training samples
 
-        mergedSummaries = tf.merge_all_summaries()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
+        mergedSummaries = tf.summary.merge_all()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
         if self.globStep == 0:  # Not restoring from previous run
             self.writer.add_graph(sess.graph)  # First time only
 
