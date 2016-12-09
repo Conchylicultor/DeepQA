@@ -29,7 +29,7 @@ The program requires the following dependencies (easy to install using pip):
  * nltk (natural language toolkit for tokenized the sentences)
  * tqdm (for the nice progression bars)
 
-With you might also need to download additional data to make nltk works.
+With you might also need to download additional data to make nltk work.
 
 ```
 python3 -m nltk.downloader punkt
