@@ -114,7 +114,7 @@ class Chatbot:
         nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
         nnArgs.add_argument('--embeddingSize', type=int, default=32, help='embedding size of the word representation')
         nnArgs.add_argument('--softmaxSamples', type=int, default=0, help='Number of samples in the sampled softmax loss function. A value of 0 deactivates sampled softmax')
-        
+
         # Training options
         trainingArgs = parser.add_argument_group('Training options')
         trainingArgs.add_argument('--numEpochs', type=int, default=30, help='maximum number of epochs to run')
@@ -158,7 +158,10 @@ class Chatbot:
 
         # Saver/summaries
         self.writer = tf.train.SummaryWriter(self._getSummaryName())
-        self.saver = tf.train.Saver(max_to_keep=200)  # Arbitrary limit ?
+        if '12' in tf.__version__:  # HACK: Solve new tf Saver V2 format
+            self.saver = tf.train.Saver(max_to_keep=200, write_version=1)  # Arbitrary limit ?
+        else:
+            self.saver = tf.train.Saver(max_to_keep=200)
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
@@ -177,9 +180,6 @@ class Chatbot:
             self.managePreviousModel(self.sess)
 
         if self.args.test:
-            # TODO: For testing, add a mode where instead taking the most likely output after the <go> token,
-            # takes the second or third so it generates new sentences for the same input. Difficult to implement,
-            # probably have to modify the TensorFlow source code
             if self.args.test == Chatbot.TestMode.INTERACTIVE:
                 self.mainTestInteractive(self.sess)
             elif self.args.test == Chatbot.TestMode.ALL:
