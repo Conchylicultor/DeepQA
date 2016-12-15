@@ -140,7 +140,8 @@ class Model:
 
         # Creation of the rnn cell
         encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)  # Or GRUCell, LSTMCell(args.hiddenSize)
-        #encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=1.0)  # TODO: Custom values (WARNING: No dropout when testing !!!)
+        if not self.args.test:  # TODO: Should use a placeholder instead
+            encoDecoCell = tf.nn.rnn_cell.DropoutWrapper(encoDecoCell, input_keep_prob=1.0, output_keep_prob=0.5)  # TODO: Custom values
         encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
 
         # Network input (placeholders)
@@ -167,13 +168,16 @@ class Model:
             feed_previous=bool(self.args.test)  # When we test (self.args.test), we use previous output as next input (feed_previous)
         )
 
+        # TODO: When the LSTM hidden size is too big, we should project the LSTM output into a smaller space (4086 => 2046): Should speed up
+        # training and reduce memory usage. Other solution, use sampling softmax
+
         # For testing only
         if self.args.test:
             if not outputProjection:
                 self.outputs = decoderOutputs
             else:
                 self.outputs = [outputProjection(output) for output in decoderOutputs]
-            
+
             # TODO: Attach a summary to visualize the output
 
         # For training only

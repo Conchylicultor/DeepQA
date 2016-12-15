@@ -181,7 +181,10 @@ I'm a follower.
 I hate you
 Who is skywalker ?
 Who is the dude ?
+What's your favorite color ?
 What's your favourite color ?
+What's your favorite food ?
+What's your favourite food ?
 Who is Bill Gates ?
 Who is Bill Clinton ?
 What do you think of Trump ?
@@ -190,7 +193,7 @@ Is the moon landing a hoax ?
 Is the sky blue or black ?
 Does a cat have a tail ?
 Is a snail faster than a horse ?
-Is a horse faser than a snail ?
+Is a horse faster than a snail ?
 Does a cat have a wing ?
 Can a cat fly ?
 Can a cat walk ?
@@ -246,6 +249,7 @@ How many legs does a centipede have ?
 What is the color of the sky ?
 What is the color of water ?
 What is the color of blood ?
+What is the color of a leaf ?
 What is the usual color of a leaf ?
 What is the color of a yellow car ?
 How much is two plus two ?
