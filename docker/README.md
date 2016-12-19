@@ -11,13 +11,13 @@ Run the `data-dirs.sh` script and copy your models and data into the appropriate
 
 ```sh
 cd DeepQA/docker
-./data-dirs.sh
+./data-dirs.sh <base_dir>
 ```
 
 Start the server with docker-compose:
 
 ```sh
-docker-compose -f <YAML file> up
+DEEPQA_WORKDIR=<base_dir> docker-compose -f <YAML file> up
 ```
 
 TODO: Nvidia-Docker
