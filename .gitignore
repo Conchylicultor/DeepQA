@@ -90,3 +90,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# nvidia-docker-compose
+nvidia-docker-compose.yml
+
