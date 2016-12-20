@@ -23,8 +23,11 @@ import argparse  # Command line parsing
 import configparser  # Saving the models parameters
 import datetime  # Chronometer
 import os  # Files management
-from tqdm import tqdm  # Progress bar
+import math
 import tensorflow as tf
+import numpy as np
+
+from tqdm import tqdm  # Progress bar
 
 from chatbot.textdata import TextData
 from chatbot.model import Model
@@ -51,6 +54,7 @@ class Chatbot:
         # Task specific object
         self.textData = None  # Dataset
         self.model = None  # Sequence to sequence model
+        self.restored = False # Has the model been restored from checkpoint
 
         # Tensorflow utilities for convenience saving/logging
         self.writer = None
@@ -66,7 +70,7 @@ class Chatbot:
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
-        self.CONFIG_VERSION = '0.3'
+        self.CONFIG_VERSION = '0.4'
         self.TEST_IN_NAME = 'data/test/samples.txt'
         self.TEST_OUT_SUFFIX = '_predictions.txt'
         self.SENTENCES_PREFIX = ['Q: ', 'A: ']
@@ -113,6 +117,7 @@ class Chatbot:
         nnArgs.add_argument('--hiddenSize', type=int, default=256, help='number of hidden units in each RNN cell')
         nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
         nnArgs.add_argument('--embeddingSize', type=int, default=32, help='embedding size of the word representation')
+        nnArgs.add_argument('--initEmbeddings', action='store_true', help='if present, the program will initialize the embeddings with pre-trained word2vec vectors')
         nnArgs.add_argument('--softmaxSamples', type=int, default=0, help='Number of samples in the sampled softmax loss function. A value of 0 deactivates sampled softmax')
 
         # Training options
@@ -153,6 +158,7 @@ class Chatbot:
             print('Dataset created! Thanks for using this program')
             return  # No need to go further
 
+        # Prepare the model
         with tf.device(self.getDevice()):
             self.model = Model(self.args, self.textData)
 
@@ -169,7 +175,6 @@ class Chatbot:
         # Also fix seed for random.shuffle (does it works globally for all files ?)
 
         # Running session
-
         self.sess = tf.Session()  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
         print('Initialize variables...')
@@ -178,6 +183,52 @@ class Chatbot:
         # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
         if self.args.test != Chatbot.TestMode.ALL:
             self.managePreviousModel(self.sess)
+
+        # Initialize embeddings with pre-trained word2vec vectors unless we are opening
+        # a restored model, in which case the embeddings were saved as part of the
+        # checkpoint.
+        if self.args.initEmbeddings and not self.restored:
+            print("Loading pre-trained embeddings from GoogleNews-vectors-negative300.bin")
+            with open(os.path.join(self.args.rootDir, 'data/word2vec/GoogleNews-vectors-negative300.bin'), "rb", 0) as f:
+                    header = f.readline()
+                    vocab_size, vector_size = map(int, header.split())
+                    binary_len = np.dtype('float32').itemsize * vector_size
+                    initW = np.random.uniform(-0.25,0.25,(len(self.textData.word2id), vector_size))
+                    for line in tqdm(range(vocab_size)):
+                        word = []
+                        while True:
+                            ch = f.read(1)
+                            if ch == b' ':
+                                word = b''.join(word).decode('utf-8')
+                                break
+                            if ch != b'\n':
+                                word.append(ch)
+                        if word in self.textData.word2id:
+                            initW[self.textData.word2id[word]] = np.fromstring(f.read(binary_len), dtype='float32')
+                        else:
+                            f.read(binary_len)
+
+            # PCA Decomposition to reduce word2vec dimensionality
+            if self.args.embeddingSize < vector_size:
+                U, s, Vt = np.linalg.svd(initW, full_matrices=False)
+                S = np.zeros((vector_size, vector_size), dtype=complex)
+                S[:vector_size, :vector_size] = np.diag(s)
+                initW = np.dot(U[:, :self.args.embeddingSize], S[:self.args.embeddingSize, :self.args.embeddingSize])
+
+            # Initialize input embeddings
+            with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
+                em_in = tf.get_variable("embedding")
+                self.sess.run(em_in.assign(initW))
+
+            # Initialize output embeddings
+            with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
+                em_out = tf.get_variable("embedding")
+                self.sess.run(em_out.assign(initW))
+
+            # Disable training for embeddings
+            variables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
+            variables.remove(em_in)
+            variables.remove(em_out)
 
         if self.args.test:
             if self.args.test == Chatbot.TestMode.INTERACTIVE:
@@ -385,6 +436,7 @@ class Chatbot:
             elif os.path.exists(modelName):  # Restore the model
                 print('Restoring previous model from {}'.format(modelName))
                 self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
+                self.restored = True
                 print('Model restored.')
             elif self._getModelList():
                 print('Conflict with previous models.')
@@ -451,6 +503,7 @@ class Chatbot:
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
             self.args.numLayers = config['Network'].getint('numLayers')
             self.args.embeddingSize = config['Network'].getint('embeddingSize')
+            self.args.initEmbeddings = config['Network'].getboolean('initEmbeddings')
             self.args.softmaxSamples = config['Network'].getint('softmaxSamples')
 
             # No restoring for training params, batch size or other non model dependent parameters
@@ -464,6 +517,7 @@ class Chatbot:
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
             print('embeddingSize: {}'.format(self.args.embeddingSize))
+            print('initEmbeddings: {}'.format(self.args.initEmbeddings))
             print('softmaxSamples: {}'.format(self.args.softmaxSamples))
             print()
 
@@ -490,6 +544,7 @@ class Chatbot:
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
+        config['Network']['initEmbeddings'] = str(self.args.initEmbeddings)
         config['Network']['softmaxSamples'] = str(self.args.softmaxSamples)
 
         # Keep track of the learning params (but without restoring them)
