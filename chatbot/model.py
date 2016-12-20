@@ -190,7 +190,7 @@ class Model:
                 self.textData.getVocabularySize(),
                 softmax_loss_function= sampledSoftmax if outputProjection else None  # If None, use default SoftMax
             )
-            tf.scalar_summary('loss', self.lossFct)  # Keep track of the cost
+            tf.summary.scalar('loss', self.lossFct)  # Keep track of the cost
 
             # Initialize the optimizer
             opt = tf.train.AdamOptimizer(
