@@ -25,6 +25,7 @@ import datetime  # Chronometer
 import os  # Files management
 import tensorflow as tf
 import numpy as np
+import math
 
 from tqdm import tqdm  # Progress bar
 
@@ -244,6 +245,11 @@ class Chatbot:
                     _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
                     self.writer.add_summary(summary, self.globStep)
                     self.globStep += 1
+
+                    # Output training status
+                    if self.globStep % 100 == 0:
+                        perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
+                        tqdm.write("----- Step %d -- Loss %.2f -- Perplexity %.2f" % (self.globStep, loss, perplexity))
 
                     # Checkpoint
                     if self.globStep % self.args.saveEvery == 0:
