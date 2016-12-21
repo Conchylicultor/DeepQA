@@ -69,7 +69,7 @@ class TextData:
         self.loadCorpus(self.samplesDir)
 
         # Plot some stats:
-        print('Loaded: {} words, {} QA'.format(len(self.word2id), len(self.trainingSamples)))
+        print('Loaded {}: {} words, {} QA'.format(self.args.corpus, len(self.word2id), len(self.trainingSamples)))
 
         if self.args.playDataset:
             self.playDataset()
@@ -78,10 +78,10 @@ class TextData:
         """Return the name of the dataset that the program should use with the current parameters.
         Computer from the base name, the given tag (self.args.datasetTag) and the sentence length
         """
-        baseName = 'dataset'
+        baseName = 'dataset-{}'.format(self.args.corpus)
         if self.args.datasetTag:
             baseName += '-' + self.args.datasetTag
-        return baseName + '-' + str(self.args.maxLength) + '.pkl'
+        return '{}-{}.pkl'.format(baseName, self.args.maxLength)
 
     def makeLighter(self, ratioDataset):
         """Only keep a small fraction of the dataset, given by the ratio
