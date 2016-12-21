@@ -26,7 +26,7 @@ import os  # Checking file existance
 import random
 
 from chatbot.cornelldata import CornellData
-
+from chatbot.opensubsdata import OpensubsData
 
 class Batch:
     """Struct containing batches info
@@ -52,7 +52,7 @@ class TextData:
         self.args = args
 
         # Path variables
-        self.corpusDir = os.path.join(self.args.rootDir, 'data/cornell/')
+        self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         self.samplesDir = os.path.join(self.args.rootDir, 'data/samples/')
         self.samplesName = self._constructName()
 
@@ -69,7 +69,7 @@ class TextData:
         self.loadCorpus(self.samplesDir)
 
         # Plot some stats:
-        print('Loaded: {} words, {} QA'.format(len(self.word2id), len(self.trainingSamples)))
+        print('Loaded {}: {} words, {} QA'.format(self.args.corpus, len(self.word2id), len(self.trainingSamples)))
 
         if self.args.playDataset:
             self.playDataset()
@@ -78,10 +78,10 @@ class TextData:
         """Return the name of the dataset that the program should use with the current parameters.
         Computer from the base name, the given tag (self.args.datasetTag) and the sentence length
         """
-        baseName = 'dataset'
+        baseName = 'dataset-{}'.format(self.args.corpus)
         if self.args.datasetTag:
             baseName += '-' + self.args.datasetTag
-        return baseName + '-' + str(self.args.maxLength) + '.pkl'
+        return '{}-{}.pkl'.format(baseName, self.args.maxLength)
 
     def makeLighter(self, ratioDataset):
         """Only keep a small fraction of the dataset, given by the ratio
@@ -211,8 +211,12 @@ class TextData:
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
-            cornellData = CornellData(self.corpusDir)
-            self.createCorpus(cornellData.getConversations())
+            if self.args.corpus == 'cornell':
+                cornellData = CornellData(self.corpusDir)
+                self.createCorpus(cornellData.getConversations())
+            elif self.args.corpus == 'opensubs':
+                opensubsData = OpensubsData(self.corpusDir)
+                self.createCorpus(opensubsData.getConversations())
 
             # Saving
             print('Saving dataset...')
