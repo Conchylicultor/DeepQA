@@ -185,10 +185,8 @@ class Chatbot:
         if self.args.test != Chatbot.TestMode.ALL:
             self.managePreviousModel(self.sess)
 
-        # Initialize embeddings with pre-trained word2vec vectors unless we are opening
-        # a restored model, in which case the embeddings were saved as part of the
-        # checkpoint.
-        if self.args.initEmbeddings and self.globStep == 0:
+        # Initialize embeddings with pre-trained word2vec vectors
+        if self.args.initEmbeddings:
             print("Loading pre-trained embeddings from GoogleNews-vectors-negative300.bin")
             self.loadEmbedding(self.sess)
 
@@ -377,6 +375,23 @@ class Chatbot:
         Will modify the embedding weights of the current loaded model
         Uses the GoogleNews pre-trained values (path hardcoded)
         """
+
+        # Fetch embedding variables from model
+        with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
+            em_in = tf.get_variable("embedding")
+        with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
+            em_out = tf.get_variable("embedding")
+
+        # Disable training for embeddings
+        variables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
+        variables.remove(em_in)
+        variables.remove(em_out)
+
+        # If restoring a model, we can leave here
+        if self.globStep != 0:
+            return
+
+        # New model, we load the pre-trained word2vec data and initialize embeddings
         with open(os.path.join(self.args.rootDir, 'data/word2vec/GoogleNews-vectors-negative300.bin'), "rb", 0) as f:
             header = f.readline()
             vocab_size, vector_size = map(int, header.split())
@@ -403,20 +418,10 @@ class Chatbot:
             S[:vector_size, :vector_size] = np.diag(s)
             initW = np.dot(U[:, :self.args.embeddingSize], S[:self.args.embeddingSize, :self.args.embeddingSize])
 
-        # Initialize input embeddings
-        with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
-            em_in = tf.get_variable("embedding")
-            sess.run(em_in.assign(initW))
+        # Initialize input and output embeddings
+        sess.run(em_in.assign(initW))
+        sess.run(em_out.assign(initW))
 
-        # Initialize output embeddings
-        with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
-            em_out = tf.get_variable("embedding")
-            sess.run(em_out.assign(initW))
-
-        # Disable training for embeddings
-        variables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
-        variables.remove(em_in)
-        variables.remove(em_out)
 
     def managePreviousModel(self, sess):
         """ Restore or reset the model, depending of the parameters
