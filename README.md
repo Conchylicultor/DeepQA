@@ -17,7 +17,7 @@ This work tries to reproduce the results of [A Neural Conversational Model](http
 
 The loading corpus part of the program is inspired by the Torch [neuralconvo](https://github.com/macournoyer/neuralconvo) from [macournoyer](https://github.com/macournoyer).
 
-By default, it uses the [Cornell Movie Dialogs](http://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html) corpus. If you want to train it on a bigger (but noisier) dataset, [OpenSubtitles](http://opus.lingfil.uu.se/OpenSubtitles.php) is also available (thanks to [Eschnou](https://github.com/eschnou)). To use it, follow [those instructions](data/opensubs/README) and use the flag `--corpus opensubs`.
+By default, it uses the [Cornell Movie Dialogs](http://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html) corpus. If you want to train it on a bigger (but noisier) dataset, [OpenSubtitles](http://opus.lingfil.uu.se/OpenSubtitles.php) is also available (thanks to [Eschnou](https://github.com/eschnou)). To use it, follow [those instructions](data/opensubs/) and use the flag `--corpus opensubs`.
 
 ## Installation
 
