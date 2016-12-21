@@ -23,7 +23,6 @@ import argparse  # Command line parsing
 import configparser  # Saving the models parameters
 import datetime  # Chronometer
 import os  # Files management
-import math
 import tensorflow as tf
 import numpy as np
 
@@ -54,7 +53,6 @@ class Chatbot:
         # Task specific object
         self.textData = None  # Dataset
         self.model = None  # Sequence to sequence model
-        self.restored = False # Has the model been restored from checkpoint
 
         # Tensorflow utilities for convenience saving/logging
         self.writer = None
@@ -187,48 +185,9 @@ class Chatbot:
         # Initialize embeddings with pre-trained word2vec vectors unless we are opening
         # a restored model, in which case the embeddings were saved as part of the
         # checkpoint.
-        if self.args.initEmbeddings and not self.restored:
+        if self.args.initEmbeddings and self.globStep == 0:
             print("Loading pre-trained embeddings from GoogleNews-vectors-negative300.bin")
-            with open(os.path.join(self.args.rootDir, 'data/word2vec/GoogleNews-vectors-negative300.bin'), "rb", 0) as f:
-                    header = f.readline()
-                    vocab_size, vector_size = map(int, header.split())
-                    binary_len = np.dtype('float32').itemsize * vector_size
-                    initW = np.random.uniform(-0.25,0.25,(len(self.textData.word2id), vector_size))
-                    for line in tqdm(range(vocab_size)):
-                        word = []
-                        while True:
-                            ch = f.read(1)
-                            if ch == b' ':
-                                word = b''.join(word).decode('utf-8')
-                                break
-                            if ch != b'\n':
-                                word.append(ch)
-                        if word in self.textData.word2id:
-                            initW[self.textData.word2id[word]] = np.fromstring(f.read(binary_len), dtype='float32')
-                        else:
-                            f.read(binary_len)
-
-            # PCA Decomposition to reduce word2vec dimensionality
-            if self.args.embeddingSize < vector_size:
-                U, s, Vt = np.linalg.svd(initW, full_matrices=False)
-                S = np.zeros((vector_size, vector_size), dtype=complex)
-                S[:vector_size, :vector_size] = np.diag(s)
-                initW = np.dot(U[:, :self.args.embeddingSize], S[:self.args.embeddingSize, :self.args.embeddingSize])
-
-            # Initialize input embeddings
-            with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
-                em_in = tf.get_variable("embedding")
-                self.sess.run(em_in.assign(initW))
-
-            # Initialize output embeddings
-            with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
-                em_out = tf.get_variable("embedding")
-                self.sess.run(em_out.assign(initW))
-
-            # Disable training for embeddings
-            variables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
-            variables.remove(em_in)
-            variables.remove(em_out)
+            self.loadEmbedding(sess)
 
         if self.args.test:
             if self.args.test == Chatbot.TestMode.INTERACTIVE:
@@ -410,6 +369,52 @@ class Chatbot:
         self.sess.close()
         print('Daemon closed.')
 
+    def loadEmbedding(self, sess):
+        """ Initialize embeddings with pre-trained word2vec vectors
+        Will modify the embedding weights of the current loaded model
+        Uses the GoogleNews pre-trained values (path hardcoded)
+        """
+        with open(os.path.join(self.args.rootDir, 'data/word2vec/GoogleNews-vectors-negative300.bin'), "rb", 0) as f:
+            header = f.readline()
+            vocab_size, vector_size = map(int, header.split())
+            binary_len = np.dtype('float32').itemsize * vector_size
+            initW = np.random.uniform(-0.25,0.25,(len(self.textData.word2id), vector_size))
+            for line in tqdm(range(vocab_size)):
+                word = []
+                while True:
+                    ch = f.read(1)
+                    if ch == b' ':
+                        word = b''.join(word).decode('utf-8')
+                        break
+                    if ch != b'\n':
+                        word.append(ch)
+                if word in self.textData.word2id:
+                    initW[self.textData.word2id[word]] = np.fromstring(f.read(binary_len), dtype='float32')
+                else:
+                    f.read(binary_len)
+
+        # PCA Decomposition to reduce word2vec dimensionality
+        if self.args.embeddingSize < vector_size:
+            U, s, Vt = np.linalg.svd(initW, full_matrices=False)
+            S = np.zeros((vector_size, vector_size), dtype=complex)
+            S[:vector_size, :vector_size] = np.diag(s)
+            initW = np.dot(U[:, :self.args.embeddingSize], S[:self.args.embeddingSize, :self.args.embeddingSize])
+
+        # Initialize input embeddings
+        with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
+            em_in = tf.get_variable("embedding")
+            sess.run(em_in.assign(initW))
+
+        # Initialize output embeddings
+        with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
+            em_out = tf.get_variable("embedding")
+            sess.run(em_out.assign(initW))
+
+        # Disable training for embeddings
+        variables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
+        variables.remove(em_in)
+        variables.remove(em_out)
+
     def managePreviousModel(self, sess):
         """ Restore or reset the model, depending of the parameters
         If the destination directory already contains some file, it will handle the conflict as following:
@@ -436,8 +441,6 @@ class Chatbot:
             elif os.path.exists(modelName):  # Restore the model
                 print('Restoring previous model from {}'.format(modelName))
                 self.saver.restore(sess, modelName)  # Will crash when --reset is not activated and the model has not been saved yet
-                self.restored = True
-                print('Model restored.')
             elif self._getModelList():
                 print('Conflict with previous models.')
                 raise RuntimeError('Some models are already present in \'{}\'. You should check them first (or re-try with the keepAll flag)'.format(self.modelDir))
