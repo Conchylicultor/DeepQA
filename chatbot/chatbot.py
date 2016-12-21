@@ -96,7 +96,7 @@ class Chatbot:
         globalArgs.add_argument('--playDataset', type=int, nargs='?', const=10, default=None,  help='if set, the program  will randomly play some samples(can be use conjointly with createDataset if this is the only action you want to perform)')
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the model directory (Warning: the model will be destroyed with all the folder content)')
         globalArgs.add_argument('--verbose', action='store_true', help='When testing, will plot the outputs at the same time they are computed')
-        globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be keep (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
+        globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be kept (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
         globalArgs.add_argument('--rootDir', type=str, default=None, help='folder where to look for the models and data')
         globalArgs.add_argument('--watsonMode', action='store_true', help='Inverse the questions and answer when training (the network try to guess the question)')
@@ -173,7 +173,10 @@ class Chatbot:
         # Also fix seed for random.shuffle (does it works globally for all files ?)
 
         # Running session
-        self.sess = tf.Session()  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
+        self.sess = tf.Session(config=tf.ConfigProto(
+            allow_soft_placement=True,  # Allows backup device for non GPU-available operations (when forcing GPU)
+            log_device_placement=False)  # Too verbose ?
+        )  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
         print('Initialize variables...')
         self.sess.run(tf.initialize_all_variables())
@@ -187,7 +190,7 @@ class Chatbot:
         # checkpoint.
         if self.args.initEmbeddings and self.globStep == 0:
             print("Loading pre-trained embeddings from GoogleNews-vectors-negative300.bin")
-            self.loadEmbedding(sess)
+            self.loadEmbedding(self.sess)
 
         if self.args.test:
             if self.args.test == Chatbot.TestMode.INTERACTIVE:
