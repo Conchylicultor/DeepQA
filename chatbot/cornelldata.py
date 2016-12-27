@@ -86,12 +86,7 @@ class CornellData:
                 for i, field in enumerate(fields):
                     convObj[field] = values[i]
 
-                lineIds = convObj["utteranceIDs"][2:-3].split("', '")
-
-                #print(convObj["utteranceIDs"])
-                #for lineId in lineIds:
-                    #print(lineId, end=' ')
-                #print()
+                lineIds = eval(convObj["utteranceIDs"])
 
                 # Reassemble lines
                 convObj["lines"] = []
