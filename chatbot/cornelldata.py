@@ -88,11 +88,6 @@ class CornellData:
 
                 lineIds = eval(convObj["utteranceIDs"])
 
-                #print(convObj["utteranceIDs"])
-                #for lineId in lineIds:
-                    #print(lineId, end=' ')
-                #print()
-
                 # Reassemble lines
                 convObj["lines"] = []
                 for lineId in lineIds:
