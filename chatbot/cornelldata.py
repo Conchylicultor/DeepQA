@@ -86,6 +86,7 @@ class CornellData:
                 for i, field in enumerate(fields):
                     convObj[field] = values[i]
 
+                # Convert string to list (convObj["utteranceIDs"] == "['L598485', 'L598486', ...]")
                 lineIds = eval(convObj["utteranceIDs"])
 
                 # Reassemble lines
