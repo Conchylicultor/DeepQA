@@ -1,10 +1,22 @@
 #!/bin/bash
 
-mkdir -p ~/deepQA
-cd ~/deepQA
+###
+#
+# Should be run from DeepQA/docker
+#
+# $1: work directory where to create deepQA's data
+#
+###
+
+workdir="$1"
+workdir=${workdir:="${DEEPQA_WORKDIR}"}
+gitdir=$(readlink -f .)
+
+mkdir -p ${workdir}
+cd ${workdir}
 
 mkdir -p logs
-mkdir -p data/samples
-mkdir -p data/cornell  # Not necessary if samples are presents
+cp -r ${gitdir}/../data ${workdir}
 mkdir -p save/model-server
 ln -s save/model-server model-server
+

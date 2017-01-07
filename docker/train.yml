@@ -6,9 +6,9 @@ services:
     command: [python, -u, main.py, --numEpochs, '30']
     #command: [python, -u, main.py, --test]
     volumes:
-      - ~/deepQA/logs:/root/DeepQA/chatbot_website/logs
-      - ~/deepQA/save:/root/DeepQA/save
-      - ~/deepQA/data:/root/DeepQA/data
+      - ${DEEPQA_WORKDIR}/logs:/root/DeepQA/chatbot_website/logs
+      - ${DEEPQA_WORKDIR}/save:/root/DeepQA/save
+      - ${DEEPQA_WORKDIR}/data:/root/DeepQA/data
     #depends_on:
     #  - redis
   #redis:
