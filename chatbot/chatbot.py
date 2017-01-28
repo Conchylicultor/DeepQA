@@ -101,6 +101,7 @@ class Chatbot:
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
         globalArgs.add_argument('--rootDir', type=str, default=None, help='folder where to look for the models and data')
         globalArgs.add_argument('--watsonMode', action='store_true', help='Inverse the questions and answer when training (the network try to guess the question)')
+        globalArgs.add_argument('--autoEncode', action='store_true', help='Randomly pick the question or the answer and use it both as input and output')
         globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
 
@@ -515,6 +516,7 @@ class Chatbot:
             self.globStep = config['General'].getint('globStep')
             self.args.maxLength = config['General'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
             self.args.watsonMode = config['General'].getboolean('watsonMode')
+            self.args.autoEncode = config['General'].getboolean('autoEncode')
             self.args.corpus = config['General'].get('corpus')
             #self.args.datasetTag = config['General'].get('datasetTag')
 
@@ -532,6 +534,7 @@ class Chatbot:
             print('globStep: {}'.format(self.globStep))
             print('maxLength: {}'.format(self.args.maxLength))
             print('watsonMode: {}'.format(self.args.watsonMode))
+            print('autoEncode: {}'.format(self.args.autoEncode))
             print('corpus: {}'.format(self.args.corpus))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
@@ -558,6 +561,7 @@ class Chatbot:
         config['General']['globStep']  = str(self.globStep)
         config['General']['maxLength'] = str(self.args.maxLength)
         config['General']['watsonMode'] = str(self.args.watsonMode)
+        config['General']['autoEncode'] = str(self.args.autoEncode)
         config['General']['corpus'] = str(self.args.corpus)
 
         config['Network'] = {}
