@@ -405,7 +405,11 @@ class TextData:
         Return:
             str: the sentence
         """
-        return "".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in tokens]).strip()
+        return ''.join([
+            ' ' + t if not t.startswith('\'') and
+                       t not in string.punctuation
+                    else t
+            for t in tokens]).strip().capitalize()
 
     def batchSeq2str(self, batchSeq, seqId=0, **kwargs):
         """Convert a list of integer into a human readable string.
