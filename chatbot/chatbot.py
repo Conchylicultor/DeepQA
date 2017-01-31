@@ -25,8 +25,10 @@ import datetime  # Chronometer
 import os  # Files management
 import tensorflow as tf
 import numpy as np
+import math
 
 from tqdm import tqdm  # Progress bar
+from tensorflow.python import debug as tf_debug
 
 from chatbot.textdata import TextData
 from chatbot.model import Model
@@ -96,16 +98,18 @@ class Chatbot:
         globalArgs.add_argument('--playDataset', type=int, nargs='?', const=10, default=None,  help='if set, the program  will randomly play some samples(can be use conjointly with createDataset if this is the only action you want to perform)')
         globalArgs.add_argument('--reset', action='store_true', help='use this if you want to ignore the previous model present on the model directory (Warning: the model will be destroyed with all the folder content)')
         globalArgs.add_argument('--verbose', action='store_true', help='When testing, will plot the outputs at the same time they are computed')
+        globalArgs.add_argument('--debug', action='store_true', help='run DeepQA with Tensorflow debug mode. Read TF documentation for more details on this.')
         globalArgs.add_argument('--keepAll', action='store_true', help='If this option is set, all saved model will be kept (Warning: make sure you have enough free disk space or increase saveEvery)')  # TODO: Add an option to delimit the max size
         globalArgs.add_argument('--modelTag', type=str, default=None, help='tag to differentiate which model to store/load')
         globalArgs.add_argument('--rootDir', type=str, default=None, help='folder where to look for the models and data')
         globalArgs.add_argument('--watsonMode', action='store_true', help='Inverse the questions and answer when training (the network try to guess the question)')
+        globalArgs.add_argument('--autoEncode', action='store_true', help='Randomly pick the question or the answer and use it both as input and output')
         globalArgs.add_argument('--device', type=str, default=None, help='\'gpu\' or \'cpu\' (Warning: make sure you have enough free RAM), allow to choose on which hardware run the model')
         globalArgs.add_argument('--seed', type=int, default=None, help='random seed for replication')
 
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
-        datasetArgs.add_argument('--corpus', choices=['cornell', 'opensubs'], default='cornell', help='corpus on which extract the dataset. Only two corpus available right now (cornell and opensubs)')  # TODO: Replace by cst registered in textdata
+        datasetArgs.add_argument('--corpus', choices=TextData.corpusChoices(), default=TextData.corpusChoices()[0], help='corpus on which extract the dataset.')
         datasetArgs.add_argument('--datasetTag', type=str, default=None, help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
@@ -179,6 +183,10 @@ class Chatbot:
             log_device_placement=False)  # Too verbose ?
         )  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
+        if self.args.debug:
+            self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
+            self.sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
+
         print('Initialize variables...')
         self.sess.run(tf.global_variables_initializer())
 
@@ -245,6 +253,11 @@ class Chatbot:
                     _, loss, summary = sess.run(ops + (mergedSummaries,), feedDict)
                     self.writer.add_summary(summary, self.globStep)
                     self.globStep += 1
+
+                    # Output training status
+                    if self.globStep % 100 == 0:
+                        perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
+                        tqdm.write("----- Step %d -- Loss %.2f -- Perplexity %.2f" % (self.globStep, loss, perplexity))
 
                     # Checkpoint
                     if self.globStep % self.args.saveEvery == 0:
@@ -510,6 +523,7 @@ class Chatbot:
             self.globStep = config['General'].getint('globStep')
             self.args.maxLength = config['General'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
             self.args.watsonMode = config['General'].getboolean('watsonMode')
+            self.args.autoEncode = config['General'].getboolean('autoEncode')
             self.args.corpus = config['General'].get('corpus')
             #self.args.datasetTag = config['General'].get('datasetTag')
 
@@ -527,6 +541,7 @@ class Chatbot:
             print('globStep: {}'.format(self.globStep))
             print('maxLength: {}'.format(self.args.maxLength))
             print('watsonMode: {}'.format(self.args.watsonMode))
+            print('autoEncode: {}'.format(self.args.autoEncode))
             print('corpus: {}'.format(self.args.corpus))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
@@ -553,6 +568,7 @@ class Chatbot:
         config['General']['globStep']  = str(self.globStep)
         config['General']['maxLength'] = str(self.args.maxLength)
         config['General']['watsonMode'] = str(self.args.watsonMode)
+        config['General']['autoEncode'] = str(self.args.autoEncode)
         config['General']['corpus'] = str(self.args.corpus)
 
         config['Network'] = {}

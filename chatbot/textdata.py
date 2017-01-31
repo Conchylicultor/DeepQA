@@ -24,9 +24,12 @@ import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
 import random
+import string
+from collections import OrderedDict
 
-from chatbot.cornelldata import CornellData
-from chatbot.opensubsdata import OpensubsData
+from chatbot.corpus.cornelldata import CornellData
+from chatbot.corpus.opensubsdata import OpensubsData
+from chatbot.corpus.scotusdata import ScotusData
 
 class Batch:
     """Struct containing batches info
@@ -42,6 +45,20 @@ class TextData:
     """Dataset class
     Warning: No vocabulary limit
     """
+
+    availableCorpus = OrderedDict([  # OrderedDict because the first element is the default choice
+        ('cornell', CornellData),
+        ('opensubs', OpensubsData),
+        ('scotus', ScotusData),
+    ])
+
+    @staticmethod
+    def corpusChoices():
+        """Return the dataset availables
+        Return:
+            list<string>: the supported corpus
+        """
+        return list(TextData.availableCorpus.keys())
 
     def __init__(self, args):
         """Load all conversations
@@ -117,6 +134,9 @@ class TextData:
             sample = samples[i]
             if not self.args.test and self.args.watsonMode:  # Watson mode: invert question and answer
                 sample = list(reversed(sample))
+            if not self.args.test and self.args.autoEncode:  # Autoencode: use either the question or answer for both input and output
+                k = random.randint(0, 1)
+                sample = (sample[k], sample[k])
             batch.encoderSeqs.append(list(reversed(sample[0])))  # Reverse inputs (and not outputs), little trick as defined on the original seq2seq paper
             batch.decoderSeqs.append([self.goToken] + sample[1] + [self.eosToken])  # Add the <go> and <eos> tokens
             batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
@@ -211,12 +231,8 @@ class TextData:
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
-            if self.args.corpus == 'cornell':
-                cornellData = CornellData(self.corpusDir)
-                self.createCorpus(cornellData.getConversations())
-            elif self.args.corpus == 'opensubs':
-                opensubsData = OpensubsData(self.corpusDir)
-                self.createCorpus(opensubsData.getConversations())
+            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir)
+            self.createCorpus(corpusData.getConversations())
 
             # Saving
             print('Saving dataset...')
@@ -280,7 +296,8 @@ class TextData:
         """
 
         # Iterate over all the lines of the conversation
-        for i in range(len(conversation["lines"]) - 1):  # We ignore the last line (no answer for it)
+        for i in tqdm_wrap(range(len(conversation["lines"]) - 1),  # We ignore the last line (no answer for it)
+                           desc='Conversation', leave=False):
             inputLine  = conversation["lines"][i]
             targetLine = conversation["lines"][i+1]
 
@@ -392,7 +409,20 @@ class TextData:
         if reverse:  # Reverse means input so no <eos> (otherwise pb with previous early stop)
             sentence.reverse()
 
-        return ' '.join(sentence)
+        return self.detokenize(sentence)
+
+    def detokenize(self, tokens):
+        """Slightly cleaner version of joining with spaces.
+        Args:
+            tokens (list<string>): the sentence to print
+        Return:
+            str: the sentence
+        """
+        return ''.join([
+            ' ' + t if not t.startswith('\'') and
+                       t not in string.punctuation
+                    else t
+            for t in tokens]).strip().capitalize()
 
     def batchSeq2str(self, batchSeq, seqId=0, **kwargs):
         """Convert a list of integer into a human readable string.
@@ -452,7 +482,21 @@ class TextData:
         print('Randomly play samples:')
         for i in range(self.args.playDataset):
             idSample = random.randint(0, len(self.trainingSamples))
-            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
-            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
+            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0], clean=True)))
+            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1], clean=True)))
             print()
         pass
+
+
+def tqdm_wrap(iterable, *args, **kwargs):
+    """Forward an iterable eventually wrapped around a tqdm decorator
+    The iterable is only wrapped if the iterable contains enough elements
+    Args:
+        iterable (list): An iterable object which define the __len__ method
+        *args, **kwargs: the tqdm parameters
+    Return:
+        iter: The iterable eventually decorated
+    """
+    if len(iterable) > 100:
+        return tqdm(iterable, *args, **kwargs)
+    return iterable
