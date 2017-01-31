@@ -165,11 +165,8 @@ class Chatbot:
             self.model = Model(self.args, self.textData)
 
         # Saver/summaries
-        self.writer = tf.train.SummaryWriter(self._getSummaryName())
-        if '12' in tf.__version__:  # HACK: Solve new tf Saver V2 format
-            self.saver = tf.train.Saver(max_to_keep=200, write_version=1)  # Arbitrary limit ?
-        else:
-            self.saver = tf.train.Saver(max_to_keep=200)
+        self.writer = tf.summary.FileWriter(self._getSummaryName())
+        self.saver = tf.train.Saver(max_to_keep=200, write_version=tf.train.SaverDef.V1)  # TODO: See GitHub for format name issue (when restoring the model)
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
@@ -187,7 +184,7 @@ class Chatbot:
             self.sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
         print('Initialize variables...')
-        self.sess.run(tf.initialize_all_variables())
+        self.sess.run(tf.global_variables_initializer())
 
         # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
         if self.args.test != Chatbot.TestMode.ALL:
@@ -226,7 +223,7 @@ class Chatbot:
 
         self.textData.makeLighter(self.args.ratioDataset)  # Limit the number of training samples
 
-        mergedSummaries = tf.merge_all_summaries()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
+        mergedSummaries = tf.summary.merge_all()  # Define the summary operator (Warning: Won't appear on the tensorboard graph)
         if self.globStep == 0:  # Not restoring from previous run
             self.writer.add_graph(sess.graph)  # First time only
 
