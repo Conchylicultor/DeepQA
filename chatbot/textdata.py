@@ -27,9 +27,9 @@ import random
 import string
 from collections import OrderedDict
 
-from chatbot.cornelldata import CornellData
-from chatbot.opensubsdata import OpensubsData
-from chatbot.scotusdata import ScotusData
+from chatbot.corpus.cornelldata import CornellData
+from chatbot.corpus.opensubsdata import OpensubsData
+from chatbot.corpus.scotusdata import ScotusData
 
 class Batch:
     """Struct containing batches info
