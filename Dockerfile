@@ -16,7 +16,7 @@ RUN  \
   python3 -m nltk.downloader punkt
 
 ## Tensorflow
-ARG TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0-cp35-cp35m-linux_x86_64.whl
+ARG TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp35-cp35m-linux_x86_64.whl
 
 RUN \
   pip3 install -U $TF_BINARY_URL

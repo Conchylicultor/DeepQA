@@ -165,12 +165,8 @@ class Chatbot:
             self.model = Model(self.args, self.textData)
 
         # Saver/summaries
-        if '12' in tf.__version__:  # HACK: Solve new tf Saver V2 format
-            self.writer = tf.summary.FileWriter(self._getSummaryName())
-            self.saver = tf.train.Saver(max_to_keep=200, write_version=1)  # TODO: See GitHub for format name issue (when restoring the model)
-        else:
-            self.writer = tf.train.SummaryWriter(self._getSummaryName())
-            self.saver = tf.train.Saver(max_to_keep=200)  # Arbitrary limit ?
+        self.writer = tf.summary.FileWriter(self._getSummaryName())
+        self.saver = tf.train.Saver(max_to_keep=200, write_version=tf.train.SaverDef.V1)  # TODO: See GitHub for format name issue (when restoring the model)
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
