@@ -28,6 +28,7 @@ import string
 
 from chatbot.cornelldata import CornellData
 from chatbot.opensubsdata import OpensubsData
+from chatbot.scotusdata import ScotusData
 
 class Batch:
     """Struct containing batches info
@@ -221,6 +222,9 @@ class TextData:
             elif self.args.corpus == 'opensubs':
                 opensubsData = OpensubsData(self.corpusDir)
                 self.createCorpus(opensubsData.getConversations())
+            elif self.args.corpus == 'scotus':
+                scotusData = ScotusData(self.corpusDir)
+                self.createCorpus(scotusData.getConversations())
 
             # Saving
             print('Saving dataset...')
