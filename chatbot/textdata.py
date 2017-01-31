@@ -30,6 +30,7 @@ from collections import OrderedDict
 from chatbot.corpus.cornelldata import CornellData
 from chatbot.corpus.opensubsdata import OpensubsData
 from chatbot.corpus.scotusdata import ScotusData
+from chatbot.corpus.ubuntudata import UbuntuData
 
 class Batch:
     """Struct containing batches info
@@ -50,6 +51,7 @@ class TextData:
         ('cornell', CornellData),
         ('opensubs', OpensubsData),
         ('scotus', ScotusData),
+        ('ubuntu', UbuntuData),
     ])
 
     @staticmethod
