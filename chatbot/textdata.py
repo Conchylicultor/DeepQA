@@ -25,6 +25,7 @@ import math  # For float comparison
 import os  # Checking file existance
 import random
 import string
+from collections import OrderedDict
 
 from chatbot.cornelldata import CornellData
 from chatbot.opensubsdata import OpensubsData
@@ -44,6 +45,20 @@ class TextData:
     """Dataset class
     Warning: No vocabulary limit
     """
+
+    availableCorpus = OrderedDict([  # OrderedDict because the first element is the default choice
+        ('cornell', CornellData),
+        ('opensubs', OpensubsData),
+        ('scotus', ScotusData),
+    ])
+
+    @staticmethod
+    def corpusChoices():
+        """Return the dataset availables
+        Return:
+            list<string>: the supported corpus
+        """
+        return list(TextData.availableCorpus.keys())
 
     def __init__(self, args):
         """Load all conversations
@@ -216,15 +231,8 @@ class TextData:
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
-            if self.args.corpus == 'cornell':
-                cornellData = CornellData(self.corpusDir)
-                self.createCorpus(cornellData.getConversations())
-            elif self.args.corpus == 'opensubs':
-                opensubsData = OpensubsData(self.corpusDir)
-                self.createCorpus(opensubsData.getConversations())
-            elif self.args.corpus == 'scotus':
-                scotusData = ScotusData(self.corpusDir)
-                self.createCorpus(scotusData.getConversations())
+            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir)
+            self.createCorpus(corpusData.getConversations())
 
             # Saving
             print('Saving dataset...')
@@ -288,7 +296,8 @@ class TextData:
         """
 
         # Iterate over all the lines of the conversation
-        for i in range(len(conversation["lines"]) - 1):  # We ignore the last line (no answer for it)
+        for i in tqdm_wrap(range(len(conversation["lines"]) - 1),  # We ignore the last line (no answer for it)
+                           desc='Conversation', leave=False):
             inputLine  = conversation["lines"][i]
             targetLine = conversation["lines"][i+1]
 
@@ -473,7 +482,21 @@ class TextData:
         print('Randomly play samples:')
         for i in range(self.args.playDataset):
             idSample = random.randint(0, len(self.trainingSamples))
-            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
-            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
+            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0], clean=True)))
+            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1], clean=True)))
             print()
         pass
+
+
+def tqdm_wrap(iterable, *args, **kwargs):
+    """Forward an iterable eventually wrapped around a tqdm decorator
+    The iterable is only wrapped if the iterable contains enough elements
+    Args:
+        iterable (list): An iterable object which define the __len__ method
+        *args, **kwargs: the tqdm parameters
+    Return:
+        iter: The iterable eventually decorated
+    """
+    if len(iterable) > 100:
+        return tqdm(iterable, *args, **kwargs)
+    return iterable

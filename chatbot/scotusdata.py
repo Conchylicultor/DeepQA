@@ -25,7 +25,6 @@ https://github.com/pender/chatbot-rnn
 
 class ScotusData:
     """
-    
     """
 
     def __init__(self, dirName):
