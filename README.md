@@ -79,7 +79,7 @@ Then, to launch the server locally, use the following commands:
 
 ```bash
 cd chatbot_website/
-redis-server &
+redis-server &  # Launch Redis in background
 python manage.py runserver
 ```
 

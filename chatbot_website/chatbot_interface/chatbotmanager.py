@@ -4,6 +4,7 @@ import sys
 
 from django.apps import AppConfig
 import sys
+import os
 
 chatbotPath = "/".join(settings.BASE_DIR.split('/')[:-1])
 sys.path.append(chatbotPath)
@@ -25,7 +26,8 @@ class ChatbotManager(AppConfig):
         """ Called by Django only once during startup
         """
         # Initialize the chatbot daemon (should be launched only once)
-        if not any(x in sys.argv for x in ['makemigrations', 'migrate']):  # HACK: Avoid initialisation while migrate
+        if (os.environ.get('RUN_MAIN') == 'true' and  # HACK: Avoid the autoreloader executing the startup code twice (could also use: python manage.py runserver --noreload) (see http://stackoverflow.com/questions/28489863/why-is-run-called-twice-in-the-django-dev-server)
+            not any(x in sys.argv for x in ['makemigrations', 'migrate'])):  # HACK: Avoid initialisation while migrate
             ChatbotManager.initBot()
 
     @staticmethod
