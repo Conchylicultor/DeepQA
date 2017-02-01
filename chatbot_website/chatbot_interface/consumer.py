@@ -31,6 +31,7 @@ def ws_connect(message):
         logger.info('New client connected: {}'.format(clientName))
         Group(clientName).add(message.reply_channel)  # Answer back to the client
         message.channel_session['room'] = clientName
+        message.reply_channel.send({'accept': True})
 
 
 @channel_session
@@ -51,11 +52,11 @@ def ws_receive(message):
         logger.error('{}: Error with this question {}'.format(clientName, question))
         logger.error("Unexpected error:", sys.exc_info()[0])
         answer = 'Error: Internal problem'
-    
+
     # Check eventual error
     if not answer:
         answer = 'Error: Try a shorter sentence'
-    
+
     logger.info('{}: {} -> {}'.format(clientName, question, answer))
 
     # Send the prediction back

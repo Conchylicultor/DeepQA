@@ -44,7 +44,7 @@ The web interface requires some additional packages:
  * django (tested with 1.10)
  * channels
  * Redis (see [here](http://redis.io/topics/quickstart))
- * asgi_redis
+ * asgi_redis (at least 1.0)
 
 A Docker installation is also available. More detailed instructions [here](docker/README.md).
 
@@ -79,7 +79,7 @@ Then, to launch the server locally, use the following commands:
 
 ```bash
 cd chatbot_website/
-redis-server &
+redis-server &  # Launch Redis in background
 python manage.py runserver
 ```
 
