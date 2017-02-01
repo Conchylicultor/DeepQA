@@ -31,6 +31,7 @@ def ws_connect(message):
         logger.info('New client connected: {}'.format(clientName))
         Group(clientName).add(message.reply_channel)  # Answer back to the client
         message.channel_session['room'] = clientName
+        message.reply_channel.send({'accept': True})
 
 
 @channel_session
