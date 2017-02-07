@@ -148,6 +148,12 @@ class Chatbot:
 
         #tf.logging.set_verbosity(tf.logging.INFO) # DEBUG, INFO, WARN (default), ERROR, or FATAL
 
+        # Scope everything under a model identifier, to be able to instantiate 
+        # multiple `Chatbot` instances from the same Python execution environment.
+        with tf.variable_scope(self.args.modelTag or ""):
+            self.mainScoped()
+
+    def mainScoped(self):
         self.loadModelParams()  # Update the self.modelDir and self.globStep, for now, not used when loading Model (but need to be called before _getSummaryName)
 
         self.textData = TextData(self.args)
