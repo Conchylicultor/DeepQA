@@ -31,6 +31,7 @@ from chatbot.corpus.cornelldata import CornellData
 from chatbot.corpus.opensubsdata import OpensubsData
 from chatbot.corpus.scotusdata import ScotusData
 from chatbot.corpus.ubuntudata import UbuntuData
+from chatbot.corpus.lightweightdata import LightweightData
 
 class Batch:
     """Struct containing batches info
@@ -52,6 +53,7 @@ class TextData:
         ('opensubs', OpensubsData),
         ('scotus', ScotusData),
         ('ubuntu', UbuntuData),
+        ('lightweight', LightweightData),
     ])
 
     @staticmethod
@@ -233,7 +235,11 @@ class TextData:
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
             # Corpus creation
-            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir)
+            if self.args.corpus == 'lightweight':
+                lightweightFile = os.path.join(self.args.rootDir, self.args.lightweightFile)
+                corpusData = LightweightData(self.corpusDir, lightweightFile)
+            else:
+                corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir)
             self.createCorpus(corpusData.getConversations())
 
             # Saving
