@@ -110,9 +110,10 @@ class Chatbot:
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
         datasetArgs.add_argument('--corpus', choices=TextData.corpusChoices(), default=TextData.corpusChoices()[0], help='corpus on which extract the dataset.')
-        datasetArgs.add_argument('--datasetTag', type=str, default=None, help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
+        datasetArgs.add_argument('--datasetTag', type=str, default='', help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions. Also used to define the file used for the lightweight format.')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
+        datasetArgs.add_argument('--lightweightFile', type=str, default=None, help='file containing our lightweight-formatted corpus')
 
         # Network options (Warning: if modifying something here, also make the change on save/loadParams() )
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
@@ -521,7 +522,7 @@ class Chatbot:
             self.args.watsonMode = config['General'].getboolean('watsonMode')
             self.args.autoEncode = config['General'].getboolean('autoEncode')
             self.args.corpus = config['General'].get('corpus')
-            #self.args.datasetTag = config['General'].get('datasetTag')
+            self.args.datasetTag = config['General'].get('datasetTag', '')
 
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
             self.args.numLayers = config['Network'].getint('numLayers')
@@ -539,6 +540,7 @@ class Chatbot:
             print('watsonMode: {}'.format(self.args.watsonMode))
             print('autoEncode: {}'.format(self.args.autoEncode))
             print('corpus: {}'.format(self.args.corpus))
+            print('datasetTag: {}'.format(self.args.datasetTag))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
             print('embeddingSize: {}'.format(self.args.embeddingSize))
@@ -566,6 +568,7 @@ class Chatbot:
         config['General']['watsonMode'] = str(self.args.watsonMode)
         config['General']['autoEncode'] = str(self.args.autoEncode)
         config['General']['corpus'] = str(self.args.corpus)
+        config['General']['datasetTag'] = str(self.args.datasetTag)
 
         config['Network'] = {}
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
