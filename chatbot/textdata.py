@@ -115,7 +115,7 @@ class TextData:
     def shuffle(self):
         """Shuffle the training samples
         """
-        print("Shuffling the dataset...")
+        print('Shuffling the dataset...')
         random.shuffle(self.trainingSamples)
 
     def _createBatch(self, samples):
@@ -237,7 +237,7 @@ class TextData:
 
             optionnal = ''
             if self.args.corpus == 'lightweight' and not self.args.datasetTag:
-                raise ValueError("Use the --datasetTag to define the lightweight file to use.")
+                raise ValueError('Use the --datasetTag to define the lightweight file to use.')
             else:
                 optionnal = '/' + self.args.datasetTag  # HACK: Forward the filename
 
@@ -262,9 +262,9 @@ class TextData:
 
         with open(os.path.join(dirName, self.samplesName), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
-                "word2id": self.word2id,
-                "id2word": self.id2word,
-                "trainingSamples": self.trainingSamples
+                'word2id': self.word2id,
+                'id2word': self.id2word,
+                'trainingSamples': self.trainingSamples
                 }
             pickle.dump(data, handle, -1)  # Using the highest protocol available
 
@@ -275,27 +275,27 @@ class TextData:
         """
         with open(os.path.join(dirName, self.samplesName), 'rb') as handle:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
-            self.word2id = data["word2id"]
-            self.id2word = data["id2word"]
-            self.trainingSamples = data["trainingSamples"]
+            self.word2id = data['word2id']
+            self.id2word = data['id2word']
+            self.trainingSamples = data['trainingSamples']
 
-            self.padToken = self.word2id["<pad>"]
-            self.goToken = self.word2id["<go>"]
-            self.eosToken = self.word2id["<eos>"]
-            self.unknownToken = self.word2id["<unknown>"]  # Restore special words
+            self.padToken = self.word2id['<pad>']
+            self.goToken = self.word2id['<go>']
+            self.eosToken = self.word2id['<eos>']
+            self.unknownToken = self.word2id['<unknown>']  # Restore special words
 
     def createCorpus(self, conversations):
         """Extract all data from the given vocabulary
         """
         # Add standard tokens
-        self.padToken = self.getWordId("<pad>")  # Padding (Warning: first things to add > id=0 !!)
-        self.goToken = self.getWordId("<go>")  # Start of sequence
-        self.eosToken = self.getWordId("<eos>")  # End of sequence
-        self.unknownToken = self.getWordId("<unknown>")  # Word dropped from vocabulary
+        self.padToken = self.getWordId('<pad>')  # Padding (Warning: first things to add > id=0 !!)
+        self.goToken = self.getWordId('<go>')  # Start of sequence
+        self.eosToken = self.getWordId('<eos>')  # End of sequence
+        self.unknownToken = self.getWordId('<unknown>')  # Word dropped from vocabulary
 
         # Preprocessing data
 
-        for conversation in tqdm(conversations, desc="Extract conversations"):
+        for conversation in tqdm(conversations, desc='Extract conversations'):
             self.extractConversation(conversation)
 
         # The dataset will be saved in the same order it has been extracted
@@ -307,13 +307,13 @@ class TextData:
         """
 
         # Iterate over all the lines of the conversation
-        for i in tqdm_wrap(range(len(conversation["lines"]) - 1),  # We ignore the last line (no answer for it)
+        for i in tqdm_wrap(range(len(conversation['lines']) - 1),  # We ignore the last line (no answer for it)
                            desc='Conversation', leave=False):
-            inputLine  = conversation["lines"][i]
-            targetLine = conversation["lines"][i+1]
+            inputLine  = conversation['lines'][i]
+            targetLine = conversation['lines'][i+1]
 
-            inputWords  = self.extractText(inputLine["text"])
-            targetWords = self.extractText(targetLine["text"], True)
+            inputWords  = self.extractText(inputLine['text'])
+            targetWords = self.extractText(targetLine['text'], True)
 
             if inputWords and targetWords:  # Filter wrong samples (if one of the list is empty)
                 self.trainingSamples.append([inputWords, targetWords])
