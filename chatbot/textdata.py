@@ -234,12 +234,15 @@ class TextData:
 
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
-            # Corpus creation
-            if self.args.corpus == 'lightweight':
-                lightweightFile = os.path.join(self.args.rootDir, self.args.lightweightFile)
-                corpusData = LightweightData(self.corpusDir, lightweightFile)
+
+            optionnal = ''
+            if self.args.corpus == 'lightweight' and not self.args.datasetTag:
+                raise ValueError("Use the --datasetTag to define the lightweight file to use.")
             else:
-                corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir)
+                optionnal = '/' + self.args.datasetTag  # HACK: Forward the filename
+
+            # Corpus creation
+            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optionnal)
             self.createCorpus(corpusData.getConversations())
 
             # Saving
@@ -489,7 +492,7 @@ class TextData:
         """
         print('Randomly play samples:')
         for i in range(self.args.playDataset):
-            idSample = random.randint(0, len(self.trainingSamples))
+            idSample = random.randint(0, len(self.trainingSamples) - 1)
             print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0], clean=True)))
             print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1], clean=True)))
             print()

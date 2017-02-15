@@ -39,8 +39,9 @@ class UbuntuData:
         number_subdir = 0
         for sub in tqdm(os.scandir(__dir), desc="Ubuntu dialogs subfolders", total=len(os.listdir(__dir))):
             if number_subdir == self.MAX_NUMBER_SUBDIR:
+                print("WARNING: Early stoping, only extracting {} directories".format(self.MAX_NUMBER_SUBDIR))
                 return
-            
+
             if sub.is_dir():
                 number_subdir += 1
                 for f in os.scandir(sub.path):

@@ -40,15 +40,14 @@ class LightweightData:
     """
     """
 
-    def __init__(self, dirName, lightweightFile):
+    def __init__(self, lightweightFile):
         """
         Args:
-            dirName (string): directory where to load the corpus (unused, but kept for consistency reasons).
             lightweightFile (string): file containing our lightweight-formatted corpus
         """
         self.CONVERSATION_SEP = "==="
         self.conversations = []
-        self.loadLines(lightweightFile)
+        self.loadLines(lightweightFile + '.txt')
 
 
     def loadLines(self, fileName):
@@ -56,6 +55,7 @@ class LightweightData:
         Args:
             fileName (str): file to load
         """
+
         linesBuffer = []
         with open(fileName, 'r') as f:
             for line in f:
