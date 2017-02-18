@@ -28,7 +28,7 @@ For now, DeepQA support the following dialog corpus:
 
 The program requires the following dependencies (easy to install using pip):
  * python 3.5
- * tensorflow (tested with v0.12)
+ * tensorflow (tested with v1.0)
  * numpy
  * CUDA (for using GPU)
  * nltk (natural language toolkit for tokenized the sentences)
