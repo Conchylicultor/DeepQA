@@ -58,7 +58,7 @@ To train the model, simply run `main.py`. Once trained, you can test the results
 
 Here are some flags which could be useful. For more help and options, use `python main.py -h`:
  * `--modelTag <name>`: allow to give a name to the current model to differentiate between them when testing/training.
- * `--keepAll`: use this flag when training if when testing, you want to see the predictions at different steps (it can be interesting to see the program changes its name and age as the training progress). Warning: It can quickly take a lot of storage space if you don't increase the `--saveEvey` option.
+ * `--keepAll`: use this flag when training if when testing, you want to see the predictions at different steps (it can be interesting to see the program changes its name and age as the training progress). Warning: It can quickly take a lot of storage space if you don't increase the `--saveEvery` option.
  * `--verbose`: when testing, will print the sentences as they are computed.
  * `--playDataset`: show some dialogue samples from the dataset (can be use conjointly with `--createDataset` if this is the only action you want to perform).
 
@@ -71,7 +71,7 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model present on `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it with:
 
 ```bash
-export CHATBOT_SECRET_KEY "my-secret-key"
+export CHATBOT_SECRET_KEY="my-secret-key"
 cd chatbot_website/
 python manage.py makemigrations
 python manage.py migrate
