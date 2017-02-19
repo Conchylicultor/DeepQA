@@ -200,7 +200,7 @@ It also seems to overfit as sometimes it will just pop out sentences from its tr
     Q: What color is the sky ?
     A: One of the deputies is everywhere.
 
-You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing). Don't expect spectacular results though. If you have a high-end GPU, you could try to increase the network parameters and train a better model.
+You can find an old pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing) (Won't work with the current version). Don't expect spectacular results though. If you have a high-end GPU, you could try to increase the network parameters and train a better model.
 
 ## Improvements
 
