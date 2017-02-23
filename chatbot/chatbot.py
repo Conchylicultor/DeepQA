@@ -388,7 +388,7 @@ class Chatbot:
         """
 
         # Fetch embedding variables from model
-        with tf.variable_scope("embedding_rnn_seq2seq/RNN/EmbeddingWrapper", reuse=True):
+        with tf.variable_scope("embedding_rnn_seq2seq/rnn/embedding_wrapper", reuse=True):
             em_in = tf.get_variable("embedding")
         with tf.variable_scope("embedding_rnn_seq2seq/embedding_rnn_decoder", reuse=True):
             em_out = tf.get_variable("embedding")
