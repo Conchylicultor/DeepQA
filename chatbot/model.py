@@ -132,8 +132,8 @@ class Model:
                     tf.nn.sampled_softmax_loss(
                         localWt,  # Should have shape [num_classes, dim]
                         localB,
-                        localInputs,
                         labels,
+                        localInputs,  # TODO: Not the same as sparse_softmax_loss. Should expand the dimensions
                         self.args.softmaxSamples,  # The number of classes to randomly sample per batch
                         self.textData.getVocabularySize()),  # The number of classes
                     self.dtype)
