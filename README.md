@@ -8,6 +8,7 @@
 * [Running](#running)
     * [Chatbot](#chatbot)
     * [Web interface](#web-interface)
+* [Pretrained model](#pretrained-model)
 * [Results](#results)
 * [Improvements](#improvements)
 
@@ -200,7 +201,11 @@ It also seems to overfit as sometimes it will just pop out sentences from its tr
     Q: What color is the sky ?
     A: One of the deputies is everywhere.
 
-You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23TXltWGlOdk9wOXc/view?usp=sharing). To launch it, just run `./main.py --modelTag pretrainedv2 --test interactive`. The old pre-trained model is still available  [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing) (Won't work with the current version). If you have a high-end GPU, don't hesitate to play with the hyper-parameters to train a better model.
+## Pretrained model
+
+You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23TXltWGlOdk9wOXc/view?usp=sharing), trained of the default corpus. To launch it, just run `./main.py --modelTag pretrainedv2 --test interactive`. The old pre-trained model is still available  [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing) (Won't work with the current version).
+
+If you have a high-end GPU, don't hesitate to play with the hyper-parameters/corpus to train a better model. Also if you want to share your models, don't hesitate to contact ma and I'll add it here.
 
 ## Improvements
 
