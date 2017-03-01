@@ -119,7 +119,7 @@ class Model:
                 dtype=self.dtype
             )
 
-            def sampledSoftmax(inputs, labels):
+            def sampledSoftmax(labels, inputs):
                 labels = tf.reshape(labels, [-1, 1])  # Add one dimension (nb of true classes, here 1)
 
                 # We need to compute the sampled_softmax_loss using 32bit floats to
@@ -133,7 +133,7 @@ class Model:
                         localWt,  # Should have shape [num_classes, dim]
                         localB,
                         labels,
-                        localInputs,  # TODO: Not the same as sparse_softmax_loss. Should expand the dimensions
+                        localInputs,
                         self.args.softmaxSamples,  # The number of classes to randomly sample per batch
                         self.textData.getVocabularySize()),  # The number of classes
                     self.dtype)
