@@ -249,7 +249,6 @@ class TextData:
             print('Saving dataset...')
             self.saveDataset(dirName)  # Saving tf samples
         else:
-            print('Loading dataset from {}...'.format(dirName))
             self.loadDataset(dirName)
 
         assert self.padToken == 0
@@ -273,7 +272,9 @@ class TextData:
         Args:
             dirName (str): The directory where to load the model
         """
-        with open(os.path.join(dirName, self.samplesName), 'rb') as handle:
+        dataset_path = os.path.join(dirName, self.samplesName)
+        print('Loading dataset from {}'.format(dataset_path))
+        with open(dataset_path, 'rb') as handle:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data['word2id']
             self.id2word = data['id2word']

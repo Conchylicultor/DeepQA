@@ -119,9 +119,10 @@ class Chatbot:
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
         nnArgs.add_argument('--hiddenSize', type=int, default=512, help='number of hidden units in each RNN cell')
         nnArgs.add_argument('--numLayers', type=int, default=2, help='number of rnn layers')
-        nnArgs.add_argument('--embeddingSize', type=int, default=64, help='embedding size of the word representation')
-        nnArgs.add_argument('--initEmbeddings', action='store_true', help='if present, the program will initialize the embeddings with pre-trained word2vec vectors')
         nnArgs.add_argument('--softmaxSamples', type=int, default=0, help='Number of samples in the sampled softmax loss function. A value of 0 deactivates sampled softmax')
+        nnArgs.add_argument('--initEmbeddings', action='store_true', help='if present, the program will initialize the embeddings with pre-trained word2vec vectors')
+        nnArgs.add_argument('--embeddingSize', type=int, default=64, help='embedding size of the word representation')
+        nnArgs.add_argument('--embeddingSource', type=str, default="GoogleNews-vectors-negative300.bin", help='embedding file to use for the word representation')
 
         # Training options
         trainingArgs = parser.add_argument_group('Training options')
@@ -194,7 +195,6 @@ class Chatbot:
 
         # Initialize embeddings with pre-trained word2vec vectors
         if self.args.initEmbeddings:
-            print("Loading pre-trained embeddings from GoogleNews-vectors-negative300.bin")
             self.loadEmbedding(self.sess)
 
         if self.args.test:
@@ -404,7 +404,10 @@ class Chatbot:
             return
 
         # New model, we load the pre-trained word2vec data and initialize embeddings
-        with open(os.path.join(self.args.rootDir, 'data/word2vec/GoogleNews-vectors-negative300.bin'), "rb", 0) as f:
+        embeddings_path = os.path.join(self.args.rootDir, 'data', 'embeddings', self.args.embeddingSource)
+        embeddings_format = os.path.splitext(embeddings_path)[1][1:]
+        print("Loading pre-trained word embeddings from %s " % embeddings_path)
+        with open(embeddings_path, "rb") as f:
             header = f.readline()
             vocab_size, vector_size = map(int, header.split())
             binary_len = np.dtype('float32').itemsize * vector_size
@@ -419,9 +422,20 @@ class Chatbot:
                     if ch != b'\n':
                         word.append(ch)
                 if word in self.textData.word2id:
-                    initW[self.textData.word2id[word]] = np.fromstring(f.read(binary_len), dtype='float32')
+                    if embeddings_format == 'bin':
+                        vector = np.fromstring(f.read(binary_len), dtype='float32')
+                    elif embeddings_format == 'vec':
+                        vector = np.fromstring(f.readline(), sep=' ', dtype='float32')
+                    else:
+                        raise Exception("Unkown format for embeddings: %s " % embeddings_format)
+                    initW[self.textData.word2id[word]] = vector
                 else:
-                    f.read(binary_len)
+                    if embeddings_format == 'bin':
+                        f.read(binary_len)
+                    elif embeddings_format == 'vec':
+                        f.readline()
+                    else:
+                        raise Exception("Unkown format for embeddings: %s " % embeddings_format)
 
         # PCA Decomposition to reduce word2vec dimensionality
         if self.args.embeddingSize < vector_size:
@@ -527,12 +541,14 @@ class Chatbot:
             self.args.autoEncode = config['General'].getboolean('autoEncode')
             self.args.corpus = config['General'].get('corpus')
             self.args.datasetTag = config['General'].get('datasetTag', '')
+            self.args.embeddingSource = config['General'].get('embeddingSource', '')
 
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
             self.args.numLayers = config['Network'].getint('numLayers')
-            self.args.embeddingSize = config['Network'].getint('embeddingSize')
-            self.args.initEmbeddings = config['Network'].getboolean('initEmbeddings')
             self.args.softmaxSamples = config['Network'].getint('softmaxSamples')
+            self.args.initEmbeddings = config['Network'].getboolean('initEmbeddings')
+            self.args.embeddingSize = config['Network'].getint('embeddingSize')
+
 
             # No restoring for training params, batch size or other non model dependent parameters
 
@@ -547,9 +563,10 @@ class Chatbot:
             print('datasetTag: {}'.format(self.args.datasetTag))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
-            print('embeddingSize: {}'.format(self.args.embeddingSize))
-            print('initEmbeddings: {}'.format(self.args.initEmbeddings))
             print('softmaxSamples: {}'.format(self.args.softmaxSamples))
+            print('initEmbeddings: {}'.format(self.args.initEmbeddings))
+            print('embeddingSize: {}'.format(self.args.embeddingSize))
+            print('embeddingSource: {}'.format(self.args.embeddingSource))
             print()
 
         # For now, not arbitrary  independent maxLength between encoder and decoder
@@ -573,13 +590,14 @@ class Chatbot:
         config['General']['autoEncode'] = str(self.args.autoEncode)
         config['General']['corpus'] = str(self.args.corpus)
         config['General']['datasetTag'] = str(self.args.datasetTag)
+        config['General']['embeddingSource'] = str(self.args.embeddingSource)
 
         config['Network'] = {}
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
-        config['Network']['embeddingSize'] = str(self.args.embeddingSize)
-        config['Network']['initEmbeddings'] = str(self.args.initEmbeddings)
         config['Network']['softmaxSamples'] = str(self.args.softmaxSamples)
+        config['Network']['initEmbeddings'] = str(self.args.initEmbeddings)
+        config['Network']['embeddingSize'] = str(self.args.embeddingSize)
 
         # Keep track of the learning params (but without restoring them)
         config['Training (won\'t be restored)'] = {}
