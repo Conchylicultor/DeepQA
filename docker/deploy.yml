@@ -5,6 +5,8 @@ services:
     image: deepqa:latest
     ports:
       - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=0
     volumes:
       - ~/deepQA/logs:/root/DeepQA/chatbot_website/logs
       - ~/deepQA/save:/root/DeepQA/save

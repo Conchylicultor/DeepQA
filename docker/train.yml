@@ -5,6 +5,8 @@ services:
     working_dir: /root/DeepQA
     command: [python, -u, main.py, --numEpochs, '30']
     #command: [python, -u, main.py, --test]
+    environment:
+      - PYTHONUNBUFFERED=0
     volumes:
       - ${DEEPQA_WORKDIR}/logs:/root/DeepQA/chatbot_website/logs
       - ${DEEPQA_WORKDIR}/save:/root/DeepQA/save
