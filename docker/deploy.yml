@@ -1,4 +1,3 @@
-# TODO: Make docker display chatbot module output (+ logs)
 version: '2'
 services:
   web:
@@ -8,9 +7,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=0
     volumes:
-      - ~/deepQA/logs:/root/DeepQA/chatbot_website/logs
-      - ~/deepQA/save:/root/DeepQA/save
-      - ~/deepQA/data:/root/DeepQA/data
+      - ${DEEPQA_WORKDIR}/logs:/root/DeepQA/chatbot_website/logs
+      - ${DEEPQA_WORKDIR}/save:/root/DeepQA/save
+      - ${DEEPQA_WORKDIR}/data:/root/DeepQA/data
     depends_on:
       - redis
   redis:

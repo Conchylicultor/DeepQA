@@ -13,7 +13,7 @@ Run the `data-dirs.sh` script and copy your models and data into the appropriate
 
 ```sh
 cd DeepQA/docker
-./data-dirs.sh <base_dir>
+./data_dirs.sh <base_dir>
 ```
 
 Start the server with docker-compose:
