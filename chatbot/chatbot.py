@@ -168,7 +168,7 @@ class Chatbot:
 
         # Saver/summaries
         self.writer = tf.summary.FileWriter(self._getSummaryName())
-        self.saver = tf.train.Saver(max_to_keep=200, write_version=tf.train.SaverDef.V1)  # TODO: See GitHub for format name issue (when restoring the model)
+        self.saver = tf.train.Saver(max_to_keep=200)
 
         # TODO: Fixed seed (WARNING: If dataset shuffling, make sure to do that after saving the
         # dataset, otherwise, all which cames after the shuffling won't be replicable when
@@ -484,7 +484,10 @@ class Chatbot:
         """
         tqdm.write('Checkpoint reached: saving model (don\'t stop the run)...')
         self.saveModelParams()
-        self.saver.save(sess, self._getModelName())  # TODO: Put a limit size (ex: 3GB for the modelDir)
+        model_name = self._getModelName()
+        with open(model_name, 'w') as f:  # HACK: Simulate the old model existance to avoid rewriting the file parser
+            f.write('This file is used internally by DeepQA to check the model existance. Please do not remove.\n')
+        self.saver.save(sess, model_name)  # TODO: Put a limit size (ex: 3GB for the modelDir)
         tqdm.write('Model saved.')
 
     def _getModelList(self):
