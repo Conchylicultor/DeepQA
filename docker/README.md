@@ -29,6 +29,8 @@ DEEPQA_WORKDIR=<base_dir> docker-compose -f deploy.yml up
 DEEPQA_WORKDIR=<base_dir> nvidia-docker-compose -f deploy.yml up
 ```
 
+After the server is launched, you should be able to speak with the ChatBot at http://localhost:8000/.
+
 **Note**: You can also train a model with the previous command by replacing `deploy.yml` by `train.yml`.
 
 ### For the GPU version
