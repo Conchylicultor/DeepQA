@@ -239,10 +239,10 @@ class TextData:
             if self.args.corpus == 'lightweight' and not self.args.datasetTag:
                 raise ValueError('Use the --datasetTag to define the lightweight file to use.')
             else:
-                optionnal = '/' + self.args.datasetTag  # HACK: Forward the filename
+                optional = '/' + self.args.datasetTag  # HACK: Forward the filename
 
             # Corpus creation
-            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optionnal)
+            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
             self.createCorpus(corpusData.getConversations())
 
             # Saving
