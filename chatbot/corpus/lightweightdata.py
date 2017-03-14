@@ -49,7 +49,6 @@ class LightweightData:
         self.conversations = []
         self.loadLines(lightweightFile + '.txt')
 
-
     def loadLines(self, fileName):
         """
         Args:
@@ -65,6 +64,8 @@ class LightweightData:
                     linesBuffer = []
                 else:
                     linesBuffer.append({"text": l})
+            if len(linesBuffer):  # Eventually flush the last conversation
+                self.conversations.append({"lines": linesBuffer})
 
     def getConversations(self):
         return self.conversations
