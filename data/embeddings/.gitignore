@@ -1,5 +1,6 @@
 # Ignore everything in this directory
 *
 # Except these files
-!README
+!README*
 !.gitignore
+!*.py
