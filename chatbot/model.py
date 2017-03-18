@@ -41,7 +41,7 @@ class ProjectionOp:
 
         # Projection on the keyboard
         with tf.variable_scope('weights_' + self.scope):
-            self.W = tf.get_variable(
+            self.W_t = tf.get_variable(
                 'weights',
                 shape,
                 # initializer=tf.truncated_normal_initializer()  # TODO: Tune value (fct of input size: 1/sqrt(input_dim))
@@ -49,10 +49,11 @@ class ProjectionOp:
             )
             self.b = tf.get_variable(
                 'bias',
-                shape[1],
+                shape[0],
                 initializer=tf.constant_initializer(),
                 dtype=dtype
             )
+            self.W = tf.transpose(self.W_t)
 
     def getWeights(self):
         """ Convenience method for some tf arguments
@@ -114,7 +115,7 @@ class Model:
         # Sampled softmax only makes sense if we sample less than vocabulary size.
         if 0 < self.args.softmaxSamples < self.textData.getVocabularySize():
             outputProjection = ProjectionOp(
-                (self.args.hiddenSize, self.textData.getVocabularySize()),
+                (self.textData.getVocabularySize(), self.args.hiddenSize),
                 scope='softmax_projection',
                 dtype=self.dtype
             )
@@ -124,7 +125,7 @@ class Model:
 
                 # We need to compute the sampled_softmax_loss using 32bit floats to
                 # avoid numerical instabilities.
-                localWt     = tf.cast(tf.transpose(outputProjection.W), tf.float32)
+                localWt     = tf.cast(outputProjection.W_t,             tf.float32)
                 localB      = tf.cast(outputProjection.b,               tf.float32)
                 localInputs = tf.cast(inputs,                           tf.float32)
 
