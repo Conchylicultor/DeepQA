@@ -33,6 +33,7 @@ from chatbot.corpus.scotusdata import ScotusData
 from chatbot.corpus.ubuntudata import UbuntuData
 from chatbot.corpus.lightweightdata import LightweightData
 
+
 class Batch:
     """Struct containing batches info
     """
@@ -74,8 +75,12 @@ class TextData:
 
         # Path variables
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
-        self.samplesDir = os.path.join(self.args.rootDir, 'data/samples/')
-        self.samplesName = self._constructName()
+        basePath = self._constructBasePath()
+        self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
+        self.filteredSamplesPath = basePath + '-lenght{}-filter{}.pkl'.format(
+            self.args.maxLength,
+            self.args.filterVocab,
+        )  # Sentences/vocab filtered for this model
 
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
@@ -86,8 +91,9 @@ class TextData:
 
         self.word2id = {}
         self.id2word = {}  # For a rapid conversion
+        self.idCount = {}  # Useful to filters the words
 
-        self.loadCorpus(self.samplesDir)
+        self.loadCorpus()
 
         # Plot some stats:
         print('Loaded {}: {} words, {} QA'.format(self.args.corpus, len(self.word2id), len(self.trainingSamples)))
@@ -95,14 +101,14 @@ class TextData:
         if self.args.playDataset:
             self.playDataset()
 
-    def _constructName(self):
-        """Return the name of the dataset that the program should use with the current parameters.
-        Computer from the base name, the given tag (self.args.datasetTag) and the sentence length
+    def _constructBasePath(self):
+        """Return the name of the base prefix of the current dataset
         """
-        baseName = 'dataset-{}'.format(self.args.corpus)
+        path = os.path.join(self.args.rootDir, 'data/samples/')
+        path += 'dataset-{}'.format(self.args.corpus)
         if self.args.datasetTag:
-            baseName += '-' + self.args.datasetTag
-        return '{}-{}.pkl'.format(baseName, self.args.maxLength)
+            path += '-' + self.args.datasetTag
+        return path
 
     def makeLighter(self, ratioDataset):
         """Only keep a small fraction of the dataset, given by the ratio
@@ -141,6 +147,9 @@ class TextData:
             if not self.args.test and self.args.autoEncode:  # Autoencode: use either the question or answer for both input and output
                 k = random.randint(0, 1)
                 sample = (sample[k], sample[k])
+            # TODO: Why re-processed that at each epoch ? Could precompute that
+            # once and reuse those every time. Is not the bottleneck so won't change
+            # much ? and if preprocessing, should be compatible with autoEncode & cie.
             batch.encoderSeqs.append(list(reversed(sample[0])))  # Reverse inputs (and not outputs), little trick as defined on the original seq2seq paper
             batch.decoderSeqs.append([self.goToken] + sample[1] + [self.eosToken])  # Add the <go> and <eos> tokens
             batch.targetSeqs.append(batch.decoderSeqs[-1][1:])  # Same as decoder, but shifted to the left (ignore the <go>)
@@ -149,6 +158,7 @@ class TextData:
             assert len(batch.encoderSeqs[i]) <= self.args.maxLengthEnco
             assert len(batch.decoderSeqs[i]) <= self.args.maxLengthDeco
 
+            # TODO: Should use tf batch function to automatically add padding and batch samples
             # Add padding & define weight
             batch.encoderSeqs[i]   = [self.padToken] * (self.args.maxLengthEnco  - len(batch.encoderSeqs[i])) + batch.encoderSeqs[i]  # Left padding for the input
             batch.weights.append([1.0] * len(batch.targetSeqs[i]) + [0.0] * (self.args.maxLengthDeco - len(batch.targetSeqs[i])))
@@ -204,6 +214,8 @@ class TextData:
             for i in range(0, self.getSampleSize(), self.args.batchSize):
                 yield self.trainingSamples[i:min(i + self.args.batchSize, self.getSampleSize())]
 
+        # TODO: Should replace that by generator (better: by tf.queue)
+
         for samples in genNextSamples():
             batch = self._createBatch(samples)
             batches.append(batch)
@@ -223,43 +235,43 @@ class TextData:
         """
         return len(self.word2id)
 
-    def loadCorpus(self, dirName):
+    def loadCorpus(self):
         """Load/create the conversations data
-        Args:
-            dirName (str): The directory where to load/save the model
         """
-        datasetExist = False
-        if os.path.exists(os.path.join(dirName, self.samplesName)):
-            datasetExist = True
-
+        datasetExist = os.path.isfile(self.filteredSamplesPath)
         if not datasetExist:  # First time we load the database: creating all files
             print('Training samples not found. Creating dataset...')
 
-            optional = ''
-            if self.args.corpus == 'lightweight' and not self.args.datasetTag:
-                raise ValueError('Use the --datasetTag to define the lightweight file to use.')
-            else:
-                optional = '/' + self.args.datasetTag  # HACK: Forward the filename
+            datasetExist = os.path.isfile(self.fullSamplesPath)  # Try to construct the dataset from the preprocessed entry
+            if not datasetExist:
+                print('Constructing full dataset...')
 
-            # Corpus creation
-            corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
-            self.createCorpus(corpusData.getConversations())
+                optional = ''
+                if self.args.corpus == 'lightweight' and not self.args.datasetTag:
+                    raise ValueError('Use the --datasetTag to define the lightweight file to use.')
+                else:
+                    optional = '/' + self.args.datasetTag  # HACK: Forward the filename
+
+                # Corpus creation
+                corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
+                self.createFullCorpus(corpusData.getConversations())
+
+            print('Filtering words...')
+            self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
 
             # Saving
             print('Saving dataset...')
-            self.saveDataset(dirName)  # Saving tf samples
+            self.saveDataset()  # Saving tf samples
         else:
-            self.loadDataset(dirName)
+            self.loadDataset()
 
         assert self.padToken == 0
 
-    def saveDataset(self, dirName):
+    def saveDataset(self):
         """Save samples to file
-        Args:
-            dirName (str): The directory where to load/save the model
         """
 
-        with open(os.path.join(dirName, self.samplesName), 'wb') as handle:
+        with open(os.path.join(self.filteredSamplesPath), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
                 'word2id': self.word2id,
                 'id2word': self.id2word,
@@ -267,12 +279,10 @@ class TextData:
                 }
             pickle.dump(data, handle, -1)  # Using the highest protocol available
 
-    def loadDataset(self, dirName):
+    def loadDataset(self):
         """Load samples from file
-        Args:
-            dirName (str): The directory where to load the model
         """
-        dataset_path = os.path.join(dirName, self.samplesName)
+        dataset_path = os.path.join(self.filteredSamplesPath)
         print('Loading dataset from {}'.format(dataset_path))
         with open(dataset_path, 'rb') as handle:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
@@ -285,8 +295,21 @@ class TextData:
             self.eosToken = self.word2id['<eos>']
             self.unknownToken = self.word2id['<unknown>']  # Restore special words
 
-    def createCorpus(self, conversations):
-        """Extract all data from the given vocabulary
+    def filterFromFull():
+        """ Load the pre-processed full corpus and filter the vocabulary / sentences
+        to match the given model option
+        """
+        # 2 steps:
+        #  1: first, iterate over all samples, and add sentences into the
+        # training set. Decrement word count for unused sentences ?
+        # 2: then, iterate over word count and compute new matching ids (can be unknown),
+        # reiterate over the entire dataset to actualize new ids.
+        pass  # TODO
+
+    def createFullCorpus(self, conversations):
+        """Extract all data from the given vocabulary.
+        Save the data on disk. Note that the entire corpus is pre-processed
+        without restriction on the sentence lenght or vocab size.
         """
         # Add standard tokens
         self.padToken = self.getWordId('<pad>')  # Padding (Warning: first things to add > id=0 !!)
@@ -342,7 +365,7 @@ class TextData:
             tokens = nltk.word_tokenize(sentencesToken[i])
 
             # If the total length is not too big, we still can add one more sentence
-            if len(words) + len(tokens) <= self.args.maxLength:
+            if len(words) + len(tokens) <= self.args.maxLength:  # TODO: Filter don't happen here
                 tempWords = []
                 for token in tokens:
                     tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
