@@ -70,7 +70,7 @@ class Chatbot:
         self.MODEL_NAME_BASE = 'model'
         self.MODEL_EXT = '.ckpt'
         self.CONFIG_FILENAME = 'params.ini'
-        self.CONFIG_VERSION = '0.4'
+        self.CONFIG_VERSION = '0.5'
         self.TEST_IN_NAME = 'data/test/samples.txt'
         self.TEST_OUT_SUFFIX = '_predictions.txt'
         self.SENTENCES_PREFIX = ['Q: ', 'A: ']
@@ -113,7 +113,7 @@ class Chatbot:
         datasetArgs.add_argument('--datasetTag', type=str, default='', help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions. Also used to define the file used for the lightweight format.')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
-        datasetArgs.add_argument('--lightweightFile', type=str, default=None, help='file containing our lightweight-formatted corpus')
+        datasetArgs.add_argument('--filterVocab', type=int, default=1, help='remove rarelly used words (by default words used only once). 0 to keep all words.')
 
         # Network options (Warning: if modifying something here, also make the change on save/loadParams() )
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
@@ -536,18 +536,20 @@ class Chatbot:
 
             # Restoring the the parameters
             self.globStep = config['General'].getint('globStep')
-            self.args.maxLength = config['General'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
             self.args.watsonMode = config['General'].getboolean('watsonMode')
             self.args.autoEncode = config['General'].getboolean('autoEncode')
             self.args.corpus = config['General'].get('corpus')
-            self.args.datasetTag = config['General'].get('datasetTag', '')
-            self.args.embeddingSource = config['General'].get('embeddingSource', '')
+
+            self.args.datasetTag = config['Dataset'].get('datasetTag')
+            self.args.maxLength = config['Dataset'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
+            self.args.filterVocab = config['Dataset'].getint('filterVocab')
 
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
             self.args.numLayers = config['Network'].getint('numLayers')
             self.args.softmaxSamples = config['Network'].getint('softmaxSamples')
             self.args.initEmbeddings = config['Network'].getboolean('initEmbeddings')
             self.args.embeddingSize = config['Network'].getint('embeddingSize')
+            self.args.embeddingSource = config['Network'].get('embeddingSource')
 
 
             # No restoring for training params, batch size or other non model dependent parameters
@@ -556,11 +558,12 @@ class Chatbot:
             print()
             print('Warning: Restoring parameters:')
             print('globStep: {}'.format(self.globStep))
-            print('maxLength: {}'.format(self.args.maxLength))
             print('watsonMode: {}'.format(self.args.watsonMode))
             print('autoEncode: {}'.format(self.args.autoEncode))
             print('corpus: {}'.format(self.args.corpus))
             print('datasetTag: {}'.format(self.args.datasetTag))
+            print('maxLength: {}'.format(self.args.maxLength))
+            print('filterVocab: {}'.format(self.args.filterVocab))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
             print('softmaxSamples: {}'.format(self.args.softmaxSamples))
@@ -585,12 +588,14 @@ class Chatbot:
         config['General'] = {}
         config['General']['version']  = self.CONFIG_VERSION
         config['General']['globStep']  = str(self.globStep)
-        config['General']['maxLength'] = str(self.args.maxLength)
         config['General']['watsonMode'] = str(self.args.watsonMode)
         config['General']['autoEncode'] = str(self.args.autoEncode)
         config['General']['corpus'] = str(self.args.corpus)
-        config['General']['datasetTag'] = str(self.args.datasetTag)
-        config['General']['embeddingSource'] = str(self.args.embeddingSource)
+
+        config['Dataset'] = {}
+        config['Dataset']['datasetTag'] = str(self.args.datasetTag)
+        config['Dataset']['maxLength'] = str(self.args.maxLength)
+        config['Dataset']['filterVocab'] = str(self.args.filterVocab)
 
         config['Network'] = {}
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
@@ -598,6 +603,7 @@ class Chatbot:
         config['Network']['softmaxSamples'] = str(self.args.softmaxSamples)
         config['Network']['initEmbeddings'] = str(self.args.initEmbeddings)
         config['Network']['embeddingSize'] = str(self.args.embeddingSize)
+        config['Network']['embeddingSource'] = str(self.args.embeddingSource)
 
         # Keep track of the learning params (but without restoring them)
         config['Training (won\'t be restored)'] = {}
