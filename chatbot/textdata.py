@@ -90,16 +90,19 @@ class TextData:
         self.trainingSamples = []  # 2d array containing each question and his answer [[input,target]]
 
         self.word2id = {}
-        self.id2word = {}  # For a rapid conversion
+        self.id2word = {}  # For a rapid conversion (TODO: Could replace dict by list)
         self.idCount = {}  # Useful to filters the words
 
         self.loadCorpus()
 
         # Plot some stats:
-        print('Loaded {}: {} words, {} QA'.format(self.args.corpus, len(self.word2id), len(self.trainingSamples)))
+        self._printStats()
 
         if self.args.playDataset:
             self.playDataset()
+
+    def _printStats(self):
+        print('Loaded {}: {} words, {} QA'.format(self.args.corpus, len(self.word2id), len(self.trainingSamples)))
 
     def _constructBasePath(self):
         """Return the name of the base prefix of the current dataset
@@ -255,39 +258,49 @@ class TextData:
                 # Corpus creation
                 corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
                 self.createFullCorpus(corpusData.getConversations())
+                self._printStats()
+                self.saveDataset(self.fullSamplesPath)
+            else:
+                self.loadDataset(self.fullSamplesPath)
 
             print('Filtering words...')
             self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
 
             # Saving
             print('Saving dataset...')
-            self.saveDataset()  # Saving tf samples
+            self.saveDataset(self.filteredSamplesPath)  # Saving tf samples
         else:
-            self.loadDataset()
+            self.loadDataset(self.filteredSamplesPath)
 
         assert self.padToken == 0
 
-    def saveDataset(self):
+    def saveDataset(self, filename):
         """Save samples to file
+        Args:
+            filename (str): pickle filename
         """
 
-        with open(os.path.join(self.filteredSamplesPath), 'wb') as handle:
+        with open(os.path.join(filename), 'wb') as handle:
             data = {  # Warning: If adding something here, also modifying loadDataset
                 'word2id': self.word2id,
                 'id2word': self.id2word,
+                'idCount': self.idCount,
                 'trainingSamples': self.trainingSamples
-                }
+            }
             pickle.dump(data, handle, -1)  # Using the highest protocol available
 
-    def loadDataset(self):
+    def loadDataset(self, filename):
         """Load samples from file
+        Args:
+            filename (str): pickle filename
         """
-        dataset_path = os.path.join(self.filteredSamplesPath)
+        dataset_path = os.path.join(filename)
         print('Loading dataset from {}'.format(dataset_path))
         with open(dataset_path, 'rb') as handle:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data['word2id']
             self.id2word = data['id2word']
+            self.idCount = data['idCount']
             self.trainingSamples = data['trainingSamples']
 
             self.padToken = self.word2id['<pad>']
@@ -305,6 +318,33 @@ class TextData:
         # 2: then, iterate over word count and compute new matching ids (can be unknown),
         # reiterate over the entire dataset to actualize new ids.
         pass  # TODO
+        words = []
+
+        # Extract sentences
+        sentencesToken = nltk.sent_tokenize(line)
+
+        # We add sentence by sentence until we reach the maximum length
+        for i in range(len(sentencesToken)):
+            # If question: we only keep the last sentences
+            # If answer: we only keep the first sentences
+            if not isTarget:
+                i = len(sentencesToken)-1 - i
+
+            tokens = nltk.word_tokenize(sentencesToken[i])
+
+            # If the total length is not too big, we still can add one more sentence
+            if len(words) + len(tokens) <= self.args.maxLength:  # TODO: Filter don't happen here
+                tempWords = []
+                for token in tokens:
+                    tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
+
+                if isTarget:
+                    words = words + tempWords
+                else:
+                    words = tempWords + words
+            else:
+                break  # We reach the max length already
+
 
     def createFullCorpus(self, conversations):
         """Extract all data from the given vocabulary.
@@ -350,34 +390,22 @@ class TextData:
         Return:
             list<int>: the list of the word ids of the sentence
         """
-        words = []
+        sentences = []  # List[List[str]]
 
         # Extract sentences
         sentencesToken = nltk.sent_tokenize(line)
 
         # We add sentence by sentence until we reach the maximum length
         for i in range(len(sentencesToken)):
-            # If question: we only keep the last sentences
-            # If answer: we only keep the first sentences
-            if not isTarget:
-                i = len(sentencesToken)-1 - i
-
             tokens = nltk.word_tokenize(sentencesToken[i])
 
-            # If the total length is not too big, we still can add one more sentence
-            if len(words) + len(tokens) <= self.args.maxLength:  # TODO: Filter don't happen here
-                tempWords = []
-                for token in tokens:
-                    tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
+            tempWords = []
+            for token in tokens:
+                tempWords.append(self.getWordId(token))  # Create the vocabulary and the training sentences
 
-                if isTarget:
-                    words = words + tempWords
-                else:
-                    words = tempWords + words
-            else:
-                break  # We reach the max length already
+            sentences.append(tempWords)
 
-        return words
+        return sentences
 
     def getWordId(self, word, create=True):
         """Get the id of the word (and add it to the dictionary if not existing). If the word does not exist and
@@ -392,17 +420,19 @@ class TextData:
 
         word = word.lower()  # Ignore case
 
+        # At inference, we simply look up for the word
+        if not create:
+            wordId = self.word2id.get(word, self.unknownToken)
         # Get the id if the word already exist
-        wordId = self.word2id.get(word, -1)
-
+        elif word in self.word2id:
+            wordId = self.word2id[word]
+            self.idCount[wordId] += 1
         # If not, we create a new entry
-        if wordId == -1:
-            if create:
-                wordId = len(self.word2id)
-                self.word2id[word] = wordId
-                self.id2word[wordId] = word
-            else:
-                wordId = self.unknownToken
+        else:
+            wordId = len(self.word2id)
+            self.word2id[word] = wordId
+            self.id2word[wordId] = word
+            self.idCount[wordId] = 1
 
         return wordId
 
