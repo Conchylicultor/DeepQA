@@ -208,9 +208,10 @@ It also seems to overfit as sometimes it will just pop out sentences from its tr
 
 ## Pretrained model
 
-You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23TXltWGlOdk9wOXc/view?usp=sharing), trained of the default corpus. To launch it, extract it inside `DeepQA/save/` and run `./main.py --modelTag pretrainedv2 --test interactive`. The old pre-trained model is still available  [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing) (Won't work with the current version).
-
-**Warning**: The current pre-trained model has been created with a previous version of the program where the dataset format was slightly different. In order to make it works, you have to use the old dataset file by copying the `.pkl` file present in the downloaded folder into `data/samples/`.
+You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23TXltWGlOdk9wOXc/view?usp=sharing), trained of the default corpus. To use it:
+ 1. Extract the zip file inside `DeepQA/save/`
+ 2. Copy the preprocessed dataset from `save/model-pretrainedv2/dataset-cornell-old-lenght10-filter0.pkl` to `data/samples/`.
+ 3. Run `./main.py --modelTag pretrainedv2 --test interactive`.
 
 If you have a high-end GPU, don't hesitate to play with the hyper-parameters/corpus to train a better model. From my experiments, it seems that the learning rate and dropout rate have the most impact on the results. Also if you want to share your models, don't hesitate to contact me and I'll add it here.
 
