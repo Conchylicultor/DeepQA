@@ -436,7 +436,7 @@ class TextData:
             targetLine = conversation['lines'][i+1]
 
             inputWords  = self.extractText(inputLine['text'])
-            targetWords = self.extractText(targetLine['text'], True)
+            targetWords = self.extractText(targetLine['text'])
 
             if inputWords and targetWords:  # Filter wrong samples (if one of the list is empty)
                 self.trainingSamples.append([inputWords, targetWords])
