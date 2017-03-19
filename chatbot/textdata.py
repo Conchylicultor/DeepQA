@@ -366,11 +366,7 @@ class TextData:
         }
         new_mapping = {}  # Map the full words ids to the new one (TODO: Should be a list)
         newId = 0
-        for wordId, count in tqdm(
-            [(i, self.idCount[i]) for i in range(len(self.idCount))],
-            desc='Filter words:',
-            leave=False
-        ):
+        for wordId, count in [(i, self.idCount[i]) for i in range(len(self.idCount))]:  # Iterate in order
             if (count <= self.args.filterVocab and
                 wordId not in specialTokens):  # Cadidate to filtering (Warning: don't filter special token)
                 new_mapping[wordId] = self.unknownToken
