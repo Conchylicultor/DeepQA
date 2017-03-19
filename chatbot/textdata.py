@@ -258,10 +258,10 @@ class TextData:
                 # Corpus creation
                 corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
                 self.createFullCorpus(corpusData.getConversations())
-                self._printStats()
                 self.saveDataset(self.fullSamplesPath)
             else:
                 self.loadDataset(self.fullSamplesPath)
+            self._printStats()
 
             print('Filtering words...')
             self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
@@ -324,11 +324,13 @@ class TextData:
             """
             # We add sentence by sentence until we reach the maximum length
             merged = []
-            for i, sentence in enumerate(sentences):
-                # If question: we only keep the last sentences
-                # If answer: we only keep the first sentences
-                if not fromEnd:
-                    i = len(sentences)-1 - i
+
+            # If question: we only keep the last sentences
+            # If answer: we only keep the first sentences
+            if fromEnd:
+                sentences = reversed(sentences)
+
+            for sentence in sentences:
 
                 # If the total length is not too big, we still can add one more sentence
                 if len(merged) + len(sentence) <= self.args.maxLength:
@@ -345,9 +347,9 @@ class TextData:
 
         # 1st step: Iterate over all words and add filters the sentences
         # according to the sentence lengths
-        for sample in tqdm(self.trainingSamples, desc='Filter sentences:', leave=False):
-            inputWords = mergeSentences(sample[0], fromEnd=True)
-            targetWords = mergeSentences(sample[0], fromEnd=False)
+        for inputWords, targetWords in tqdm(self.trainingSamples, desc='Filter sentences:', leave=False):
+            inputWords = mergeSentences(inputWords, fromEnd=True)
+            targetWords = mergeSentences(targetWords, fromEnd=False)
 
             newSamples.append([inputWords, targetWords])
         words = []
