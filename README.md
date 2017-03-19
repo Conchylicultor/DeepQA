@@ -239,7 +239,7 @@ With the last commit, I added the possibility to filters rarely used words from 
 [Dataset]
 # Make sure that datasettag match the one from the filename you just renamed
 datasettag = old
-# Use the maxLength value of your model. Should also match
+# Use the maxLength value of your model. Should also match the one from filename you just renamed
 maxlength = 10
 filtervocab = 0
 ```
