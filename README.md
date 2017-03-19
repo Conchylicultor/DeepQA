@@ -65,6 +65,7 @@ To train the model, simply run `main.py`. Once trained, you can test the results
 Here are some flags which could be useful. For more help and options, use `python main.py -h`:
  * `--modelTag <name>`: allow to give a name to the current model to differentiate between them when testing/training.
  * `--keepAll`: use this flag when training if when testing, you want to see the predictions at different steps (it can be interesting to see the program changes its name and age as the training progress). Warning: It can quickly take a lot of storage space if you don't increase the `--saveEvery` option.
+ * `--filterVocab 20`: replace the words used less than 20 times by the `<unknown>` token. This is helpful to reduce the vocabulary size and optimize the performances and memory usage.
  * `--verbose`: when testing, will print the sentences as they are computed.
  * `--playDataset`: show some dialogue samples from the dataset (can be use conjointly with `--createDataset` if this is the only action you want to perform).
 
