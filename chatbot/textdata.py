@@ -300,7 +300,7 @@ class TextData:
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data['word2id']
             self.id2word = data['id2word']
-            self.idCount = data['idCount']
+            self.idCount = data.get('idCount', None)
             self.trainingSamples = data['trainingSamples']
 
             self.padToken = self.word2id['<pad>']

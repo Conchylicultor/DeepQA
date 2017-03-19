@@ -1,6 +1,8 @@
 # Deep Q&A
 [![Join the chat at https://gitter.im/chatbot-pilots/DeepQA](https://badges.gitter.im/chatbot-pilots/DeepQA.svg)](https://gitter.im/chatbot-pilots/DeepQA?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+Note: if your models don't work anymore following the last update, please follow [those instructions](#upgrade) to update.
+
 #### Table of Contents
 
 * [Presentation](#presentation)
@@ -11,6 +13,7 @@
 * [Results](#results)
 * [Pretrained model](#pretrained-model)
 * [Improvements](#improvements)
+* [Upgrade](#upgrade)
 
 ## Presentation
 
@@ -207,6 +210,8 @@ It also seems to overfit as sometimes it will just pop out sentences from its tr
 
 You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23TXltWGlOdk9wOXc/view?usp=sharing), trained of the default corpus. To launch it, extract it inside `DeepQA/save/` and run `./main.py --modelTag pretrainedv2 --test interactive`. The old pre-trained model is still available  [here](https://drive.google.com/file/d/0Bw-phsNSkq23amlSZXVqcm5oVFU/view?usp=sharing) (Won't work with the current version).
 
+**Warning**: The current pre-trained model has been created with a previous version of the program where the dataset format was slightly different. In order to make it works, you have to use the old dataset file by copying the `.pkl` file present in the downloaded folder into `data/samples/`.
+
 If you have a high-end GPU, don't hesitate to play with the hyper-parameters/corpus to train a better model. From my experiments, it seems that the learning rate and dropout rate have the most impact on the results. Also if you want to share your models, don't hesitate to contact me and I'll add it here.
 
 ## Improvements
@@ -218,3 +223,29 @@ In addition to trying larger/deeper model, there are a lot of small improvements
 * Having more data usually don't hurt. Training on a bigger corpus should be beneficial. [Reddit comments dataset](https://www.reddit.com/r/datasets/comments/59039y/updated_reddit_comment_dataset_up_to_201608/) seems the biggest for now (and is too big for this program to support it). Another trick to artificially increase the dataset size when creating the corpus could be to split the sentences of each training sample (ex: from the sample `Q:Sentence 1. Sentence 2. => A:Sentence X. Sentence Y.` we could generate 3 new samples: `Q:Sentence 1. Sentence 2. => A:Sentence X.`, `Q:Sentence 2. => A:Sentence X. Sentence Y.` and `Q:Sentence 2. => A:Sentence X.`. Warning: other combinations like `Q:Sentence 1. => A:Sentence X.` won't work because it would break the transition `2 => X` which links the question to the answer)
 * The testing curve should really be monitored as done in my other [music generation](https://github.com/Conchylicultor/MusicGenerator) project. This would greatly help to see the impact of dropout on overfitting. For now it's just done empirically by manually checking the testing prediction at different training steps.
 * For now, the questions are independent from each other. To link questions together, a straightforward way would be to feed all previous questions and answer to the encoder before giving the answer. Some caching could be done on the final encoder stated to avoid recomputing it each time. To improve the accuracy, the network should be retrain on entire dialogues instead of just individual QA. Also when feeding the previous dialogue to the encoder, new tokens `<Q>` and `<A>` could be added so the encoder knows when the interlocutor is changing. I'm not sure though that the simple seq2seq model would be sufficient to capture long term dependencies between sentences. Adding a bucket system to group similar input lengths together could greatly improve training speed.
+
+## Upgrade
+
+With the last commit, I added the possibility to filters rarely used words from the dataset using `--filterVocab 3`. The dataset preprocessing should also be a lot faster when generating the vocabulary for different `maxLength`. Unfortunately, this make the previous pre-processed datasets incompatible. Here are the change to make to use the old model with the new version:
+
+ 1. Rename the old dataset (present in `data/samples/`) into the new format name. Ex: from `dataset-cornell-10.pkl` to `dataset-cornell-old-lenght10-filter0.pkl`.
+
+ 2. Update the model configuration file `params.ini`. The changes to make are:
+    * `version`: change to `0.5`
+    * Create a new `[Dataset]` field with the following fields
+
+```ini
+[Dataset]
+# Make sure that datasettag match the one from the filename you just renamed
+datasettag = old
+# Use the maxLength value of your model. Should also match
+maxlength = 10
+filtervocab = 0
+```
+
+If everything goes well, you should see this message somewhere on the terminal output when loading your model.
+
+```
+Loading dataset from /home/*/DeepQA/data/samples/dataset-cornell-old-lenght10-filter0.pkl
+Loaded cornell: 34991 words, 139979 QA
+```
