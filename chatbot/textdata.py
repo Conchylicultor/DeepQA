@@ -26,6 +26,7 @@ import os  # Checking file existance
 import random
 import string
 from collections import OrderedDict
+import collections
 
 from chatbot.corpus.cornelldata import CornellData
 from chatbot.corpus.opensubsdata import OpensubsData
@@ -77,9 +78,10 @@ class TextData:
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         basePath = self._constructBasePath()
         self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
-        self.filteredSamplesPath = basePath + '-lenght{}-filter{}.pkl'.format(
+        self.filteredSamplesPath = basePath + '-lenght{}-filter{}-vocabSize{}.pkl'.format(
             self.args.maxLength,
             self.args.filterVocab,
+            self.args.vocabularySize,
         )  # Sentences/vocab filtered for this model
 
         self.padToken = -1  # Padding
@@ -366,20 +368,25 @@ class TextData:
         }
         new_mapping = {}  # Map the full words ids to the new one (TODO: Should be a list)
         newId = 0
+        
+        print("Filtering dataset with vocabSize={} and wordCount > {}", self.args.vocabularySize,self.args.filterVocab)
+        word_counter = collections.Counter(self.idCount)
+        selected_word_ids = word_counter.most_common(self.args.vocabularySize)
+        selected_word_ids = { k:v for k, v in selected_word_ids if v>self.args.filterVocab }
+
         for wordId, count in [(i, self.idCount[i]) for i in range(len(self.idCount))]:  # Iterate in order
-            if (count <= self.args.filterVocab and
-                wordId not in specialTokens):  # Cadidate to filtering (Warning: don't filter special token)
-                new_mapping[wordId] = self.unknownToken
-                del self.word2id[self.id2word[wordId]]  # The word isn't used anymore
-                del self.id2word[wordId]
-            else:  # Update the words ids
+            if wordId in selected_word_ids or wordId in specialTokens: #update word id
                 new_mapping[wordId] = newId
                 word = self.id2word[wordId]  # The new id has changed, update the dictionaries
                 del self.id2word[wordId]  # Will be recreated if newId == wordId
                 self.word2id[word] = newId
                 self.id2word[newId] = word
                 newId += 1
-
+            else:  #Not in our list nor special, map it to unknownToken
+                new_mapping[wordId] = self.unknownToken
+                del self.word2id[self.id2word[wordId]]  # The word isn't used anymore
+                del self.id2word[wordId]
+       
         # Last step: replace old ids by new ones and filters empty sentences
         def replace_words(words):
             valid = False  # Filter empty sequences
@@ -390,15 +397,25 @@ class TextData:
             return valid
 
         self.trainingSamples.clear()
+        self.idCount.clear()  # Let's recreate idCount
+        
         for inputWords, targetWords in tqdm(newSamples, desc='Replace ids:', leave=False):
             valid = True
             valid &= replace_words(inputWords)
             valid &= replace_words(targetWords)
+            valid &= targetWords.count(self.unknownToken) == 0  # Filter target with out-of-vocabulary target words
 
             if valid:
                 self.trainingSamples.append([inputWords, targetWords])  # TODO: Could replace list by tuple
+                #Recreate idCount
+                for wordId in inputWords + targetWords:
+                    if wordId in self.idCount:
+                        self.idCount[wordId] = self.idCount[wordId] + 1
+                    else:
+                        self.idCount[wordId] = 1
+        print("Final vocabulary size of", len(self.word2id) - len(specialTokens))
 
-        self.idCount.clear()  # Not usefull anymore. Free data
+
 
 
     def createFullCorpus(self, conversations):
@@ -424,9 +441,14 @@ class TextData:
         Args:
             conversation (Obj): a conversation object containing the lines to extract
         """
+        
+        if self.args.increaseTrainingPairs:
+            step = 1
+        else:
+            step = 2
 
         # Iterate over all the lines of the conversation
-        for i in tqdm_wrap(range(len(conversation['lines']) - 1),  # We ignore the last line (no answer for it)
+        for i in tqdm_wrap(range(0,len(conversation['lines']) - 1, step ),  # We ignore the last line (no answer for it)
                            desc='Conversation', leave=False):
             inputLine  = conversation['lines'][i]
             targetLine = conversation['lines'][i+1]

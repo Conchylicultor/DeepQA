@@ -114,6 +114,9 @@ class Chatbot:
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
         datasetArgs.add_argument('--filterVocab', type=int, default=1, help='remove rarelly used words (by default words used only once). 0 to keep all words.')
+        datasetArgs.add_argument('--increaseTrainingPairs', type=bool, default=False, help='Use every line in the dataset as both input and target, thus multiplying by two the training set.')
+        datasetArgs.add_argument('--vocabularySize', type=int, default=40000, help='Limit the number of words in the vocabulary')
+        
 
         # Network options (Warning: if modifying something here, also make the change on save/loadParams() )
         nnArgs = parser.add_argument_group('Network options', 'architecture related option')
@@ -543,6 +546,9 @@ class Chatbot:
             self.args.datasetTag = config['Dataset'].get('datasetTag')
             self.args.maxLength = config['Dataset'].getint('maxLength')  # We need to restore the model length because of the textData associated and the vocabulary size (TODO: Compatibility mode between different maxLength)
             self.args.filterVocab = config['Dataset'].getint('filterVocab')
+            self.increaseTrainingPairs = config['Dataset'].getboolean('increaseTrainingPairs')
+            self.args.vocabularySize = config['Dataset'].getint('vocabularySize')
+            
 
             self.args.hiddenSize = config['Network'].getint('hiddenSize')
             self.args.numLayers = config['Network'].getint('numLayers')
@@ -564,6 +570,8 @@ class Chatbot:
             print('datasetTag: {}'.format(self.args.datasetTag))
             print('maxLength: {}'.format(self.args.maxLength))
             print('filterVocab: {}'.format(self.args.filterVocab))
+            print('increaseTrainingPairs: {}'.format(self.args.increaseTrainingPairs))
+            print('vocabularySize: {}'.format(self.args.vocabularySize))
             print('hiddenSize: {}'.format(self.args.hiddenSize))
             print('numLayers: {}'.format(self.args.numLayers))
             print('softmaxSamples: {}'.format(self.args.softmaxSamples))
@@ -596,7 +604,10 @@ class Chatbot:
         config['Dataset']['datasetTag'] = str(self.args.datasetTag)
         config['Dataset']['maxLength'] = str(self.args.maxLength)
         config['Dataset']['filterVocab'] = str(self.args.filterVocab)
-
+        config['Dataset']['increaseTrainingPairs'] = str(self.args.increaseTrainingPairs)
+        config['Dataset']['vocabularySize'] = str(self.args.vocabularySize)
+        
+        
         config['Network'] = {}
         config['Network']['hiddenSize'] = str(self.args.hiddenSize)
         config['Network']['numLayers'] = str(self.args.numLayers)
