@@ -369,7 +369,7 @@ class TextData:
         new_mapping = {}  # Map the full words ids to the new one (TODO: Should be a list)
         newId = 0
         
-        print("Filtering dataset with vocabSize={} and wordCount > {}", self.args.vocabularySize,self.args.filterVocab)
+        print("Filtering dataset with vocabSize = ", self.args.vocabularySize, " and wordCount > ", self.args.filterVocab)
         word_counter = collections.Counter(self.idCount)
         selected_word_ids = word_counter.most_common(self.args.vocabularySize)
         selected_word_ids = { k:v for k, v in selected_word_ids if v>self.args.filterVocab }

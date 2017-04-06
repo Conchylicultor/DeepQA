@@ -114,7 +114,7 @@ class Chatbot:
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
         datasetArgs.add_argument('--maxLength', type=int, default=10, help='maximum length of the sentence (for input and output), define number of maximum step of the RNN')
         datasetArgs.add_argument('--filterVocab', type=int, default=1, help='remove rarelly used words (by default words used only once). 0 to keep all words.')
-        datasetArgs.add_argument('--increaseTrainingPairs', type=bool, default=False, help='Use every line in the dataset as both input and target, thus multiplying by two the training set.')
+        datasetArgs.add_argument('--increaseTrainingPairs', action='store_true', help='Use every line in the dataset two times as both input and target, thus multiplying by two the training set.')
         datasetArgs.add_argument('--vocabularySize', type=int, default=40000, help='Limit the number of words in the vocabulary')
         
 
