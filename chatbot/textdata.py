@@ -25,7 +25,7 @@ import math  # For float comparison
 import os  # Checking file existance
 import random
 import string
-from collections import OrderedDict
+import collections
 
 from chatbot.corpus.cornelldata import CornellData
 from chatbot.corpus.opensubsdata import OpensubsData
@@ -49,7 +49,7 @@ class TextData:
     Warning: No vocabulary limit
     """
 
-    availableCorpus = OrderedDict([  # OrderedDict because the first element is the default choice
+    availableCorpus = collections.OrderedDict([  # OrderedDict because the first element is the default choice
         ('cornell', CornellData),
         ('opensubs', OpensubsData),
         ('scotus', ScotusData),
@@ -77,9 +77,10 @@ class TextData:
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         basePath = self._constructBasePath()
         self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
-        self.filteredSamplesPath = basePath + '-lenght{}-filter{}.pkl'.format(
+        self.filteredSamplesPath = basePath + '-length{}-filter{}-vocabSize{}.pkl'.format(
             self.args.maxLength,
             self.args.filterVocab,
+            self.args.vocabularySize,
         )  # Sentences/vocab filtered for this model
 
         self.padToken = -1  # Padding
@@ -91,7 +92,7 @@ class TextData:
 
         self.word2id = {}
         self.id2word = {}  # For a rapid conversion (Warning: If replace dict by list, modify the filtering to avoid linear complexity with del)
-        self.idCount = {}  # Useful to filters the words (TODO: Could replace dict by list)
+        self.idCount = {}  # Useful to filters the words (TODO: Could replace dict by list or use collections.Counter)
 
         self.loadCorpus()
 
@@ -250,9 +251,9 @@ class TextData:
                 print('Constructing full dataset...')
 
                 optional = ''
-                if self.args.corpus == 'lightweight' and not self.args.datasetTag:
-                    raise ValueError('Use the --datasetTag to define the lightweight file to use.')
-                else:
+                if self.args.corpus == 'lightweight':
+                    if not self.args.datasetTag:
+                        raise ValueError('Use the --datasetTag to define the lightweight file to use.')
                     optional = '/' + self.args.datasetTag  # HACK: Forward the filename
 
                 # Corpus creation
@@ -263,7 +264,10 @@ class TextData:
                 self.loadDataset(self.fullSamplesPath)
             self._printStats()
 
-            print('Filtering words...')
+            print('Filtering words (vocabSize = {} and wordCount > {})...'.format(
+                self.args.vocabularySize,
+                self.args.filterVocab
+            ))
             self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
 
             # Saving
@@ -364,47 +368,54 @@ class TextData:
             self.eosToken,
             self.unknownToken
         }
-        new_mapping = {}  # Map the full words ids to the new one (TODO: Should be a list)
+        newMapping = {}  # Map the full words ids to the new one (TODO: Should be a list)
         newId = 0
+
+        selectedWordIds = collections \
+            .Counter(self.idCount) \
+            .most_common(self.args.vocabularySize or None)  # Keep all if vocabularySize == 0
+        selectedWordIds = {k for k, v in selectedWordIds if v > self.args.filterVocab}
+        selectedWordIds |= specialTokens
+
         for wordId, count in [(i, self.idCount[i]) for i in range(len(self.idCount))]:  # Iterate in order
-            if (count <= self.args.filterVocab and
-                wordId not in specialTokens):  # Cadidate to filtering (Warning: don't filter special token)
-                new_mapping[wordId] = self.unknownToken
-                del self.word2id[self.id2word[wordId]]  # The word isn't used anymore
-                del self.id2word[wordId]
-            else:  # Update the words ids
-                new_mapping[wordId] = newId
+            if wordId in selectedWordIds:  # Update the word id
+                newMapping[wordId] = newId
                 word = self.id2word[wordId]  # The new id has changed, update the dictionaries
                 del self.id2word[wordId]  # Will be recreated if newId == wordId
                 self.word2id[word] = newId
                 self.id2word[newId] = word
                 newId += 1
+            else:  # Cadidate to filtering, map it to unknownToken (Warning: don't filter special token)
+                newMapping[wordId] = self.unknownToken
+                del self.word2id[self.id2word[wordId]]  # The word isn't used anymore
+                del self.id2word[wordId]
 
         # Last step: replace old ids by new ones and filters empty sentences
         def replace_words(words):
             valid = False  # Filter empty sequences
             for i, w in enumerate(words):
-                words[i] = new_mapping[w]
+                words[i] = newMapping[w]
                 if words[i] != self.unknownToken:  # Also filter if only contains unknown tokens
                     valid = True
             return valid
 
         self.trainingSamples.clear()
+
         for inputWords, targetWords in tqdm(newSamples, desc='Replace ids:', leave=False):
             valid = True
             valid &= replace_words(inputWords)
             valid &= replace_words(targetWords)
+            valid &= targetWords.count(self.unknownToken) == 0  # Filter target with out-of-vocabulary target words ?
 
             if valid:
                 self.trainingSamples.append([inputWords, targetWords])  # TODO: Could replace list by tuple
 
         self.idCount.clear()  # Not usefull anymore. Free data
 
-
     def createFullCorpus(self, conversations):
         """Extract all data from the given vocabulary.
         Save the data on disk. Note that the entire corpus is pre-processed
-        without restriction on the sentence lenght or vocab size.
+        without restriction on the sentence length or vocab size.
         """
         # Add standard tokens
         self.padToken = self.getWordId('<pad>')  # Padding (Warning: first things to add > id=0 !!)
@@ -425,9 +436,17 @@ class TextData:
             conversation (Obj): a conversation object containing the lines to extract
         """
 
+        if self.args.skipLines:  # WARNING: The dataset won't be regenerated if the choice evolve (have to use the datasetTag)
+            step = 2
+        else:
+            step = 1
+
         # Iterate over all the lines of the conversation
-        for i in tqdm_wrap(range(len(conversation['lines']) - 1),  # We ignore the last line (no answer for it)
-                           desc='Conversation', leave=False):
+        for i in tqdm_wrap(
+            range(0, len(conversation['lines']) - 1, step),  # We ignore the last line (no answer for it)
+            desc='Conversation',
+            leave=False
+        ):
             inputLine  = conversation['lines'][i]
             targetLine = conversation['lines'][i+1]
 
