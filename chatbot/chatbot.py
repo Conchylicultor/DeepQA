@@ -109,6 +109,8 @@ class Chatbot:
 
         # Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
+        datasetArgs.add_argument('--twitter_name', type=str, required=True, help='Name of twitter account to download/use data from')
+        datasetArgs.add_argument('--max_tweets', type=int, default=3200, help='Number of tweets to use at most')
         datasetArgs.add_argument('--corpus', choices=TextData.corpusChoices(), default=TextData.corpusChoices()[0], help='corpus on which extract the dataset.')
         datasetArgs.add_argument('--datasetTag', type=str, default='', help='add a tag to the dataset (file where to load the vocabulary and the precomputed samples, not the original corpus). Useful to manage multiple versions. Also used to define the file used for the lightweight format.')  # The samples are computed from the corpus if it does not exist already. There are saved in \'data/samples/\'
         datasetArgs.add_argument('--ratioDataset', type=float, default=1.0, help='ratio of dataset used to avoid using the whole dataset')  # Not implemented, useless ?
@@ -520,7 +522,7 @@ class Chatbot:
         should be reset in managePreviousModel
         """
         # Compute the current model path
-        self.modelDir = os.path.join(self.args.rootDir, self.MODEL_DIR_BASE)
+        self.modelDir = os.path.join(self.args.rootDir, self.MODEL_DIR_BASE, self.args.twitter_name)
         if self.args.modelTag:
             self.modelDir += '-' + self.args.modelTag
 

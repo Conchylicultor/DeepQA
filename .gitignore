@@ -94,3 +94,4 @@ ENV/
 # nvidia-docker-compose
 nvidia-docker-compose.yml
 
+chatbot/credentials.json
