@@ -17,17 +17,17 @@
 Loads the dialogue corpus, builds the vocabulary
 """
 
-import numpy as np
-import nltk  # For tokenize
-from tqdm import tqdm  # Progress bar
-import pickle  # Saving the data
-import math  # For float comparison
+import collections
 import os  # Checking file existance
+import pickle  # Saving the data
 import random
 import string
-import collections
 
-from chatbot.twitter_generate_data_pickle import get_data
+import nltk  # For tokenize
+import numpy as np
+from tqdm import tqdm  # Progress bar
+
+from chatbot.corpus.twitter.twitter_generate_data_pickle import get_data
 #from chatbot.corpus.cornelldata import CornellData
 #from chatbot.corpus.opensubsdata import OpensubsData
 #from chatbot.corpus.scotusdata import ScotusData
@@ -80,7 +80,7 @@ class TextData:
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         basePath = self._constructBasePath()
         self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
-        self.filteredSamplesPath = basePath + '-length{}-filter{}-vocabSize{}.pkl'.format(
+        self.filteredSamplesPath = basePath + '-maxlength{}-filter{}-vocabSize{}.pkl'.format(
             self.args.maxLength,
             self.args.filterVocab,
             self.args.vocabularySize,
@@ -256,7 +256,7 @@ class TextData:
             datasetExist = os.path.isfile(self.fullSamplesPath)  # Try to construct the dataset from the preprocessed entry
             if not datasetExist:
                 print('Constructing full dataset...')
-                get_data(self.twitter_name, self.args.maxLength, self.max_tweets)
+                get_data(self.twitter_name, self.args.maxLength, self.max_tweets, self.args.filterVocab, self.args.vocabularySize)
         #         optional = ''
         #         if self.args.corpus == 'lightweight':
         #             if not self.args.datasetTag:
@@ -284,7 +284,7 @@ class TextData:
         #     self.loadDataset(self.filteredSamplesPath)
         #
 
-        self.loadDataset(self.fullSamplesPath)
+        self.loadDataset(self.filteredSamplesPath)
         assert self.padToken == 0
 
     def saveDataset(self, filename):

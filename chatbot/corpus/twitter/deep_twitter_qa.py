@@ -5,7 +5,7 @@ import itertools
 
 from TwitterAPI import TwitterAPI
 
-with open("chatbot/credentials.json") as f:
+with open("./credentials.json") as f:
     credentials = json.load(f)
 
 api = TwitterAPI(**credentials)

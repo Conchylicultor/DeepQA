@@ -1,6 +1,7 @@
 import os
 import pickle
-from chatbot.deep_twitter_qa import store_question_answers
+
+from chatbot.corpus.twitter.deep_twitter_qa import store_question_answers
 
 
 def genset(questions, answers, maxLength):
@@ -45,9 +46,9 @@ def load_qa(username, max_tweets, overwrite):
     return questions, answers
 
 
-def get_data(username, maxLength=35, max_tweets=3200, overwrite=False):
-    sample_path = "data/samples/" if os.path.isdir("data/samples") else "../data/samples/"
-    path = os.path.join(sample_path + "{}-dataset-{}.pkl".format(username, maxLength))
+def get_data(username, maxLength=10, max_tweets=3200, filterVocab=1, vocabSize=40000, overwrite=False):
+    sample_path = "data/samples/dataset-twitter/"
+    path = os.path.join(sample_path + '{}-dataset-maxlength{}-filter{}-vocabSize{}.pkl'.format(username, maxLength, filterVocab, vocabSize))
     if not overwrite and os.path.isfile(path):
         print("Using existing pickle", path)
     else:
