@@ -522,7 +522,7 @@ class Chatbot:
         should be reset in managePreviousModel
         """
         # Compute the current model path
-        self.modelDir = os.path.join(self.args.rootDir, self.MODEL_DIR_BASE, self.args.twitter_name)
+        self.modelDir = os.path.join(self.args.rootDir, self.MODEL_DIR_BASE)
         if self.args.modelTag:
             self.modelDir += '-' + self.args.modelTag
 

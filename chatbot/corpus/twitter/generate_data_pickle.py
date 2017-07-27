@@ -47,8 +47,8 @@ def load_qa(username, max_tweets, overwrite):
 
 
 def TwitterData(username, maxLength=10, max_tweets=3200, filterVocab=1, vocabSize=40000, overwrite=False):
-    sample_path = "data/samples/dataset-twitter/"
-    path = os.path.join(sample_path + '{}-dataset-maxlength{}-filter{}-vocabSize{}.pkl'.format(username, maxLength, filterVocab, vocabSize))
+    sample_path = "data/samples/twitter/"
+    path = os.path.join(sample_path + '{}-dataset-length{}-filter{}-vocabSize{}.pkl'.format(username, maxLength, filterVocab, vocabSize))
     if not overwrite and os.path.isfile(path):
         print("Using existing pickle", path)
     else:

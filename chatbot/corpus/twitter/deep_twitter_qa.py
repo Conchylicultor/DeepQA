@@ -5,7 +5,7 @@ import itertools
 
 from TwitterAPI import TwitterAPI
 
-cwd = os.path.dirname(os.path.realpath('__file__'));
+cwd = os.path.dirname(os.path.realpath('__file__'))
 filepath = os.path.join( cwd, "chatbot/corpus/twitter/credentials.json")
 with open(filepath) as f:
     credentials = json.load(f)

@@ -80,7 +80,7 @@ class TextData:
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         basePath = self._constructBasePath()
         self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
-        self.filteredSamplesPath = basePath + '-maxlength{}-filter{}-vocabSize{}.pkl'.format(
+        self.filteredSamplesPath = basePath + '-length{}-filter{}-vocabSize{}.pkl'.format(
             self.args.maxLength,
             self.args.filterVocab,
             self.args.vocabularySize,
@@ -115,7 +115,6 @@ class TextData:
         """
         path = os.path.join(self.args.rootDir, 'data/samples/')
         path += 'dataset-{}'.format(self.args.corpus)
-        path += '/' + self.twitter_name + '-dataset'
 
         if self.args.datasetTag:
             path += '-' + self.args.datasetTag
