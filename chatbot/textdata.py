@@ -116,6 +116,9 @@ class TextData:
         path = os.path.join(self.args.rootDir, 'data/samples/')
         path += 'dataset-{}'.format(self.args.corpus)
 
+        if self.args.corpus == 'twitter':
+            path += '-' + self.args.twitter_name
+
         if self.args.datasetTag:
             path += '-' + self.args.datasetTag
         return path
