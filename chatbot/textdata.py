@@ -27,12 +27,12 @@ import nltk  # For tokenize
 import numpy as np
 from tqdm import tqdm  # Progress bar
 
-from chatbot.corpus.twitter.generate_data_pickle import get_data
-#from chatbot.corpus.cornelldata import CornellData
-#from chatbot.corpus.opensubsdata import OpensubsData
-#from chatbot.corpus.scotusdata import ScotusData
-#from chatbot.corpus.ubuntudata import UbuntuData
-#from chatbot.corpus.lightweightdata import LightweightData
+from chatbot.corpus.cornelldata import CornellData
+from chatbot.corpus.opensubsdata import OpensubsData
+from chatbot.corpus.scotusdata import ScotusData
+from chatbot.corpus.ubuntudata import UbuntuData
+from chatbot.corpus.lightweightdata import LightweightData
+from chatbot.corpus.twitter.generate_data_pickle import TwitterData
 
 
 class Batch:
@@ -51,12 +51,12 @@ class TextData:
     """
 
     availableCorpus = collections.OrderedDict([  # OrderedDict because the first element is the default choice
-        # ('cornell', CornellData),
-        #('opensubs', OpensubsData),
-        #('scotus', ScotusData),
-        #('ubuntu', UbuntuData),
-        #('lightweight', LightweightData),
-        ('twitter', get_data)
+        ('cornell', CornellData),
+        ('opensubs', OpensubsData),
+        ('scotus', ScotusData),
+        ('ubuntu', UbuntuData),
+        ('lightweight', LightweightData),
+        ('twitter', TwitterData)
     ])
 
     @staticmethod
@@ -256,7 +256,7 @@ class TextData:
             datasetExist = os.path.isfile(self.fullSamplesPath)  # Try to construct the dataset from the preprocessed entry
             if not datasetExist:
                 print('Constructing full dataset...')
-                get_data(self.twitter_name, self.args.maxLength, self.max_tweets, self.args.filterVocab, self.args.vocabularySize)
+                TwitterData(self.twitter_name, self.args.maxLength, self.max_tweets, self.args.filterVocab, self.args.vocabularySize)
         #         optional = ''
         #         if self.args.corpus == 'lightweight':
         #             if not self.args.datasetTag:

@@ -46,7 +46,7 @@ def load_qa(username, max_tweets, overwrite):
     return questions, answers
 
 
-def get_data(username, maxLength=10, max_tweets=3200, filterVocab=1, vocabSize=40000, overwrite=False):
+def TwitterData(username, maxLength=10, max_tweets=3200, filterVocab=1, vocabSize=40000, overwrite=False):
     sample_path = "data/samples/dataset-twitter/"
     path = os.path.join(sample_path + '{}-dataset-maxlength{}-filter{}-vocabSize{}.pkl'.format(username, maxLength, filterVocab, vocabSize))
     if not overwrite and os.path.isfile(path):
