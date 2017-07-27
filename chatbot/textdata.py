@@ -27,7 +27,7 @@ import nltk  # For tokenize
 import numpy as np
 from tqdm import tqdm  # Progress bar
 
-from chatbot.corpus.twitter.twitter_generate_data_pickle import get_data
+from chatbot.corpus.twitter.generate_data_pickle import get_data
 #from chatbot.corpus.cornelldata import CornellData
 #from chatbot.corpus.opensubsdata import OpensubsData
 #from chatbot.corpus.scotusdata import ScotusData
