@@ -28,7 +28,7 @@ def genset(questions, answers, maxLength):
 
 
 def load_qa(username, max_tweets, overwrite):
-    d = "data/tweets/" if os.path.isdir("data/tweets") else "../data/tweets/"
+    d = "data/twitter/" if os.path.isdir("data/twitter") else "../data/twitter/"
     d += "{}-{}.txt"
     if overwrite:
         questions, answers = store_question_answers(username, max_tweets)

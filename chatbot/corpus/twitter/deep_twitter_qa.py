@@ -17,11 +17,11 @@ def get_tweets(screen_name, max_tweets=None):
     show = api.request("users/show", {"screen_name": screen_name}).json()
     max_tweets = max_tweets or show.get("statuses_count")
     max_tweets = min(max_tweets, 3200)
-    print("Gathering {} tweets. Through API, 3200 is max possible".format(max_tweets))
+    print("Gathering {} twitter. Through API, 3200 is max possible".format(max_tweets))
     user_tweets = []
     query_params = {"screen_name": screen_name, "max_id": None, "count": 200}
     last_seen = True
-    print("Gathering tweets for", screen_name)
+    print("Gathering twitter for", screen_name)
     while True:
         try:
             r = api.request("statuses/user_timeline", query_params)
@@ -32,7 +32,7 @@ def get_tweets(screen_name, max_tweets=None):
             user_tweets.extend(timeline_tweets)
             query_params['max_id'] = timeline_tweets[-1]['id']
             print("latest ID", query_params['max_id'],
-                  "number of new tweets", len(timeline_tweets))
+                  "number of new twitter", len(timeline_tweets))
         except Exception as e:
             print("ERROR, check twitter handle", e)
         if len(user_tweets) >= max_tweets:
@@ -52,7 +52,7 @@ def find_questions_for_tweets(tweets):
     origin_gen = (x for x in origins)
     questions = []
     answers = []
-    print("Getting original tweets to which <user> replied")
+    print("Getting original twitter to which <user> replied")
     while True:
         orig = list(itertools.islice(origin_gen, 100))
         if not orig:
@@ -101,7 +101,7 @@ def get_rate_limits():
 
 def store_question_answers(username, max_number=None):
     questions, answers = get_tweet_qa(username, max_number)
-    d = "data/tweets/" if os.path.isdir("data/tweets") else "../data/tweets/"
+    d = "data/twitter/" if os.path.isdir("data/twitter") else "../data/twitter/"
     d += "{}-{}.txt"
     with open(d.format(username, "questions"), "w") as f:
         f.write("\n".join(questions))

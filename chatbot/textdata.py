@@ -259,13 +259,15 @@ class TextData:
             if not datasetExist:
                 print('Constructing full dataset...')
                 TwitterData(self.twitter_name, self.args.maxLength, self.max_tweets, self.args.filterVocab, self.args.vocabularySize)
-        #         optional = ''
-        #         if self.args.corpus == 'lightweight':
-        #             if not self.args.datasetTag:
-        #                 raise ValueError('Use the --datasetTag to define the lightweight file to use.')
-        #             optional = '/' + self.args.datasetTag  # HACK: Forward the filename
-        #
-        #         # Corpus creation
+                optional = ''
+                if self.args.corpus == 'lightweight':
+                    if not self.args.datasetTag:
+                        raise ValueError('Use the --datasetTag to define the lightweight file to use.')
+                    optional = '/' + self.args.datasetTag  # HACK: Forward the filename
+
+                # Corpus creation
+                self.loadDataset(self.filteredSamplesPath)
+
         #         corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
         #         self.createFullCorpus(corpusData.getConversations())
         #         self.saveDataset(self.fullSamplesPath)
@@ -282,11 +284,11 @@ class TextData:
         #     # Saving
         #     print('Saving dataset...')
         #     self.saveDataset(self.filteredSamplesPath)  # Saving tf samples
-        # else:
-        #     self.loadDataset(self.filteredSamplesPath)
-        #
+        else:
+            self.loadDataset(self.filteredSamplesPath)
 
-        self.loadDataset(self.filteredSamplesPath)
+
+
         assert self.padToken == 0
 
     def saveDataset(self, filename):
