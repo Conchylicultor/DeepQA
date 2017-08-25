@@ -1,0 +1,5 @@
+tensorflow>=1.0
+numpy
+nltk
+tqdm
+
