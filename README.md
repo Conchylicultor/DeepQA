@@ -30,7 +30,7 @@ To speedup the training, it's also possible to use pre-trained word embeddings (
 
 ## Installation
 
-The program requires the following dependencies (easy to install using pip):
+The program requires the following dependencies (easy to install using pip: `pip3 install -r requirements.txt`):
  * python 3.5
  * tensorflow (tested with v1.0)
  * numpy
