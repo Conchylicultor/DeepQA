@@ -108,7 +108,7 @@ class TextData:
     def _constructBasePath(self):
         """Return the name of the base prefix of the current dataset
         """
-        path = os.path.join(self.args.rootDir, 'data/samples/')
+        path = os.path.join(self.args.rootDir, 'data' + os.sep + 'samples' + os.sep)
         path += 'dataset-{}'.format(self.args.corpus)
         if self.args.datasetTag:
             path += '-' + self.args.datasetTag
@@ -254,7 +254,7 @@ class TextData:
                 if self.args.corpus == 'lightweight':
                     if not self.args.datasetTag:
                         raise ValueError('Use the --datasetTag to define the lightweight file to use.')
-                    optional = '/' + self.args.datasetTag  # HACK: Forward the filename
+                    optional = os.sep + self.args.datasetTag  # HACK: Forward the filename
 
                 # Corpus creation
                 corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
