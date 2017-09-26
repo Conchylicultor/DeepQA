@@ -73,7 +73,7 @@ By default, the network architecture is a standard encoder/decoder with two LSTM
 
 ### Web interface
 
-Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model present on `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it with:
+Once trained, it's possible to chat with it using a more user friendly interface. The server will look at the model copied to `save/model-server/model.ckpt`. The first time you want to use it, you'll need to configure it with:
 
 ```bash
 export CHATBOT_SECRET_KEY="my-secret-key"
