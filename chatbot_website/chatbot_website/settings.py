@@ -70,7 +70,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'chatbot_website.wsgi.application'
-
+ASGI_APPLICATION = 'chatbot_website.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
