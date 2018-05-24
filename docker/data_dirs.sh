@@ -10,7 +10,24 @@
 
 workdir="$1"
 workdir=${workdir:="${DEEPQA_WORKDIR}"}
-gitdir=$(readlink -f .)
+machineOS=$(uname -s)
+
+if [[ "$(uname -s)"  == "Darwin" ]]; then
+    if [[ -z $(command -v greadlink) ]]; then
+        read -r -p 'no greadlink, install with brew? y/N: ' response
+        if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
+        then
+            brew install coreutils
+        else
+            echo -e "can't continue without proper readlink!\n"
+            exit 1
+        fi
+    else
+    gitdir=$(greadlink -f .)
+    fi
+else
+    gitdir=$(readlink -f .)
+fi
 
 echo "Creating:"
 echo " - ${workdir}"
