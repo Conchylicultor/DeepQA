@@ -10,7 +10,6 @@
 
 workdir="$1"
 workdir=${workdir:="${DEEPQA_WORKDIR}"}
-machineOS=$(uname -s)
 
 if [[ "$(uname -s)"  == "Darwin" ]]; then
     if [[ -z $(command -v greadlink) ]]; then
