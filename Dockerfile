@@ -11,9 +11,9 @@ RUN  \
   pip3 install -U nltk \
   asgiref \
   tqdm \
-  django \
-  asgi_redis \
-  channels && \
+  django==1.10 \
+  channels==1.1.6 \
+  asgi_redis && \
   python3 -m nltk.downloader punkt
 
 ## Tensorflow

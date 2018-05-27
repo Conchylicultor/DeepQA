@@ -189,10 +189,12 @@ class Chatbot:
             allow_soft_placement=True,  # Allows backup device for non GPU-available operations (when forcing GPU)
             log_device_placement=False
             # device_count={'CPU': 1})  # Too verbose ?
-        )  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
+        ))  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
         if self.args.debug:
+            logging.debug('debug 1 ')
             self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
+            logging.debug('debug 2')
             self.sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
         print('Initialize variables...')
