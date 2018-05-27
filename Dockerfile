@@ -5,10 +5,11 @@ FROM python:3.5.2
 ## Dependencies
 
 RUN \
-  apt-get -qq -y update && apt-get -y install unzip
+  apt-get -qq -y update && apt-get -y install unzip && pip install --upgrade pip
 
 RUN  \
   pip3 install -U nltk \
+  asgiref \
   tqdm \
   django \
   asgi_redis \
