@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
   web:
     image: deepqa:latest
@@ -7,10 +7,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=0
     volumes:
-      - ${DEEPQA_WORKDIR}/logs:/root/DeepQA/chatbot_website/logs
-      - ${DEEPQA_WORKDIR}/save:/root/DeepQA/save
-      - ${DEEPQA_WORKDIR}/data:/root/DeepQA/data
+      - DOCKERTRAIN/logs:/root/DeepQA/chatbot_website/logs
+      - DOCKERTRAIN/save:/root/DeepQA/save
+      - DOCKERTRAIN/data:/root/DeepQA/data
     depends_on:
       - redis
   redis:
     image: redis
+volumes:
+  DOCKERTRAIN:

@@ -37,6 +37,6 @@ mkdir -p ${workdir}
 cd ${workdir}
 
 mkdir -p logs
-cp -r ${gitdir}/../data ${workdir}
+cp -r ${gitdir}/../data data
 mkdir -p save/model-server
 ln -s save/model-server model-server

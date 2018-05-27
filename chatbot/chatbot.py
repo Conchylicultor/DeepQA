@@ -32,7 +32,9 @@ from tensorflow.python import debug as tf_debug
 
 from chatbot.textdata import TextData
 from chatbot.model import Model
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Chatbot:
     """
@@ -155,16 +157,20 @@ class Chatbot:
 
         self.loadModelParams()  # Update the self.modelDir and self.globStep, for now, not used when loading Model (but need to be called before _getSummaryName)
 
+        logger.debug('text data function thing')
         self.textData = TextData(self.args)
+
         # TODO: Add a mode where we can force the input of the decoder // Try to visualize the predictions for
         # each word of the vocabulary / decoder input
         # TODO: For now, the model are trained for a specific dataset (because of the maxLength which define the
         # vocabulary). Add a compatibility mode which allow to launch a model trained on a different vocabulary (
         # remap the word2id/id2word variables).
+        logger.debug('create text data function thing')
         if self.args.createDataset:
             print('Dataset created! Thanks for using this program')
             return  # No need to go further
 
+        logger.debug('prepare model')
         # Prepare the model
         with tf.device(self.getDevice()):
             self.model = Model(self.args, self.textData)
@@ -181,7 +187,8 @@ class Chatbot:
         # Running session
         self.sess = tf.Session(config=tf.ConfigProto(
             allow_soft_placement=True,  # Allows backup device for non GPU-available operations (when forcing GPU)
-            log_device_placement=False)  # Too verbose ?
+            log_device_placement=False
+            # device_count={'CPU': 1})  # Too verbose ?
         )  # TODO: Replace all sess by self.sess (not necessary a good idea) ?
 
         if self.args.debug:
@@ -189,15 +196,22 @@ class Chatbot:
             self.sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
 
         print('Initialize variables...')
+
+        logging.debug('reset default graph lol')
+        # i think this caused issues tf.reset_default_graph()
+        logging.debug('run graph')
         self.sess.run(tf.global_variables_initializer())
 
         # Reload the model eventually (if it exist.), on testing mode, the models are not loaded here (but in predictTestset)
+        logging.debug('managepreviousmodel')
         if self.args.test != Chatbot.TestMode.ALL:
             self.managePreviousModel(self.sess)
 
+        logging.debug('initembeddings')
         # Initialize embeddings with pre-trained word2vec vectors
         if self.args.initEmbeddings:
             self.loadEmbedding(self.sess)
+
 
         if self.args.test:
             if self.args.test == Chatbot.TestMode.INTERACTIVE:

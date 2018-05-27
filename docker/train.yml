@@ -1,17 +1,12 @@
-version: '2'
+version: '3'
 services:
-  train_2:
+  train:
     image: deepqa:latest
     working_dir: /root/DeepQA
-    command: [python, -u, main.py, --numEpochs, '30']
-    #command: [python, -u, main.py, --test]
+    command: [python, -u, main.py, --numEpochs, '1', --corpus, "lightweight", "--datasetTag", "calldata", "--verbose"]
     environment:
       - PYTHONUNBUFFERED=0
     volumes:
       - ${DEEPQA_WORKDIR}/logs:/root/DeepQA/chatbot_website/logs
       - ${DEEPQA_WORKDIR}/save:/root/DeepQA/save
       - ${DEEPQA_WORKDIR}/data:/root/DeepQA/data
-    #depends_on:
-    #  - redis
-  #redis:
-    #image: redis
