@@ -9,10 +9,10 @@ RUN \
 
 RUN  \
   pip3 install -U nltk \
-  asgiref \
   tqdm \
   django==1.10 \
   channels==1.1.6 \
+  asgiref==2.0.0 \
   asgi_redis && \
   python3 -m nltk.downloader punkt
 
