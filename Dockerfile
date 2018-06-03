@@ -12,6 +12,7 @@ RUN  \
   tqdm \
   django \
   asgi_redis \
+  TwitterAPI \
   channels && \
   python3 -m nltk.downloader punkt
 

@@ -17,21 +17,22 @@
 Loads the dialogue corpus, builds the vocabulary
 """
 
-import numpy as np
-import nltk  # For tokenize
-from tqdm import tqdm  # Progress bar
-import pickle  # Saving the data
-import math  # For float comparison
+import collections
 import os  # Checking file existance
+import pickle  # Saving the data
 import random
 import string
-import collections
+
+import nltk  # For tokenize
+import numpy as np
+from tqdm import tqdm  # Progress bar
 
 from chatbot.corpus.cornelldata import CornellData
 from chatbot.corpus.opensubsdata import OpensubsData
 from chatbot.corpus.scotusdata import ScotusData
 from chatbot.corpus.ubuntudata import UbuntuData
 from chatbot.corpus.lightweightdata import LightweightData
+from chatbot.corpus.twitter.generate_data_pickle import TwitterData
 
 
 class Batch:
@@ -55,6 +56,7 @@ class TextData:
         ('scotus', ScotusData),
         ('ubuntu', UbuntuData),
         ('lightweight', LightweightData),
+        ('twitter', TwitterData)
     ])
 
     @staticmethod
@@ -74,6 +76,7 @@ class TextData:
         self.args = args
 
         # Path variables
+        self.twitter_name = self.args.twitter_name
         self.corpusDir = os.path.join(self.args.rootDir, 'data', self.args.corpus)
         basePath = self._constructBasePath()
         self.fullSamplesPath = basePath + '.pkl'  # Full sentences length/vocab
@@ -82,6 +85,8 @@ class TextData:
             self.args.filterVocab,
             self.args.vocabularySize,
         )  # Sentences/vocab filtered for this model
+
+        self.max_tweets = self.args.max_tweets
 
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
@@ -110,6 +115,10 @@ class TextData:
         """
         path = os.path.join(self.args.rootDir, 'data' + os.sep + 'samples' + os.sep)
         path += 'dataset-{}'.format(self.args.corpus)
+
+        if self.args.corpus == 'twitter':
+            path += '-' + self.args.twitter_name
+
         if self.args.datasetTag:
             path += '-' + self.args.datasetTag
         return path
@@ -249,7 +258,7 @@ class TextData:
             datasetExist = os.path.isfile(self.fullSamplesPath)  # Try to construct the dataset from the preprocessed entry
             if not datasetExist:
                 print('Constructing full dataset...')
-
+                TwitterData(self.twitter_name, self.args.maxLength, self.max_tweets, self.args.filterVocab, self.args.vocabularySize)
                 optional = ''
                 if self.args.corpus == 'lightweight':
                     if not self.args.datasetTag:
@@ -257,24 +266,28 @@ class TextData:
                     optional = os.sep + self.args.datasetTag  # HACK: Forward the filename
 
                 # Corpus creation
-                corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
-                self.createFullCorpus(corpusData.getConversations())
-                self.saveDataset(self.fullSamplesPath)
-            else:
-                self.loadDataset(self.fullSamplesPath)
-            self._printStats()
+                self.loadDataset(self.filteredSamplesPath)
 
-            print('Filtering words (vocabSize = {} and wordCount > {})...'.format(
-                self.args.vocabularySize,
-                self.args.filterVocab
-            ))
-            self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
-
-            # Saving
-            print('Saving dataset...')
-            self.saveDataset(self.filteredSamplesPath)  # Saving tf samples
+        #         corpusData = TextData.availableCorpus[self.args.corpus](self.corpusDir + optional)
+        #         self.createFullCorpus(corpusData.getConversations())
+        #         self.saveDataset(self.fullSamplesPath)
+        #     else:
+        #         self.loadDataset(self.fullSamplesPath)
+        #     self._printStats()
+        #
+        #     print('Filtering words (vocabSize = {} and wordCount > {})...'.format(
+        #         self.args.vocabularySize,
+        #         self.args.filterVocab
+        #     ))
+        #     self.filterFromFull()  # Extract the sub vocabulary for the given maxLength and filterVocab
+        #
+        #     # Saving
+        #     print('Saving dataset...')
+        #     self.saveDataset(self.filteredSamplesPath)  # Saving tf samples
         else:
             self.loadDataset(self.filteredSamplesPath)
+
+
 
         assert self.padToken == 0
 
