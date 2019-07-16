@@ -27,6 +27,9 @@ import tensorflow as tf
 import numpy as np
 import math
 
+from googletrans import Translator
+translator = Translator()
+
 from tqdm import tqdm  # Progress bar
 from tensorflow.python import debug as tf_debug
 
@@ -325,7 +328,7 @@ class Chatbot:
               'expectation. Type \'exit\' or just press ENTER to quit the program. Have fun.')
 
         while True:
-            question = input(self.SENTENCES_PREFIX[0])
+            question = translator.translate(input(), dest='en').text
             if question == '' or question == 'exit':
                 break
 
@@ -335,7 +338,7 @@ class Chatbot:
                 print('Warning: sentence too long, sorry. Maybe try a simpler sentence.')
                 continue  # Back to the beginning, try again
 
-            print('{}{}'.format(self.SENTENCES_PREFIX[1], self.textData.sequence2str(answer, clean=True)))
+            print('{}{}'.format(self.SENTENCES_PREFIX[1], translator.translate(self.textData.sequence2str(answer, clean=True), dest='fa').text))
 
             if self.args.verbose:
                 print(self.textData.batchSeq2str(questionSeq, clean=True, reverse=True))
