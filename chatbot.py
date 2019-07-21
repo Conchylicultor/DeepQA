@@ -335,24 +335,24 @@ class Chatbot:
             if question == '' or question == 'exit':
                 break
 			if question.contains("ویکی"):
-				start = txt.find( 'مورد' )
-				if (txt.find( 'بگو' )==-1):
-					if (txt.find( 'چی' )==-1):
-						if (txt.find( 'حرف' )==-1):
-							if (txt.find( 'بهم' )==-1):
-							else: end=(txt.find( 'بهم' )
-						else:end=(txt.find( 'حرف' )
-					else:end=(txt.find( 'چی' )
-				else:end=(txt.find( 'بگو' )
-				end = txt.find( 'بگو' )
+				start = question.find( 'مورد' )
+				if (question.find( 'بگو' )==-1):
+					if (question.find( 'چی' )==-1):
+						if (question.find( 'حرف' )==-1):
+							if (question.find( 'بهم' )==-1):
+							else: end=(question.find( 'بهم' )
+						else:end=(question.find( 'حرف' )
+					else:end=(question.find( 'چی' )
+				else:end=(question.find( 'بگو' )
+				end = question.find( 'بگو' )
 				if start != -1 and end != -1:
-					entry = txt[:start-1]+txt[end+1:]
+					entry = question[:start-1]+question[end+1:]
 				else: entry="کامپیوتر"
 				obtainedTxt=(wikipedia.summary(wikipedia.search(entry)[0], sentences=1))
-				start = txt.find( '(' )
-				end = txt.find( ')' )
+				start = obtainedTxt.find( '(' )
+				end = obtainedTxt.find( ')' )
 				if start != -1 and end != -1:
-					result = txt[:start-1]+txt[end+1:]
+					wikiExtractedResult = obtainedTxt[:start-1]+txt[end+1:]
 				answer=wikiExtractedResult
 			else:
             questionSeq = []  # Will be contain the question as seen by the encoder
