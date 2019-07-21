@@ -27,6 +27,9 @@ import tensorflow as tf
 import numpy as np
 import math
 
+import wikipedia
+wikipedia.set_lang("fa")
+
 from googletrans import Translator
 translator = Translator()
 
@@ -331,7 +334,14 @@ class Chatbot:
             question = translator.translate(input(), dest='en').text
             if question == '' or question == 'exit':
                 break
-
+			if question.contains("ویکی"):
+				obtainedTxt=(wikipedia.summary(wikipedia.search(entry)[0], sentences=1))
+				start = txt.find( '(' )
+				end = txt.find( ')' )
+				if start != -1 and end != -1:
+					result = txt[:start-1]+txt[end+1:]
+				answer=wikiExtractedResult
+			else:
             questionSeq = []  # Will be contain the question as seen by the encoder
             answer = self.singlePredict(question, questionSeq)
             if not answer:
