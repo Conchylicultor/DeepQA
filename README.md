@@ -205,9 +205,11 @@ It also seems to overfit as sometimes it will just pop out sentences from its tr
     Q: What color is the sky ?
     A: One of the deputies is everywhere.
 
-## Pretrained model
+## Pretrained model (not working)
 
-You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23OXRFTkNqN0JGUU0/view?usp=sharing), trained of the default corpus. To use it:
+Note: Links do not work anymore.
+
+~~You can find a pre-trained model [here](https://drive.google.com/file/d/0Bw-phsNSkq23OXRFTkNqN0JGUU0/view?usp=sharing)~~, trained of the default corpus. To use it:
  1. Extract the zip file inside `DeepQA/save/`
  2. Copy the preprocessed dataset from `save/model-pretrainedv2/dataset-cornell-old-lenght10-filter0-vocabSize0.pkl` to `data/samples/`.
  3. Run `./main.py --modelTag pretrainedv2 --test interactive`.
