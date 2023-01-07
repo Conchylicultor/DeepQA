@@ -5,14 +5,15 @@ FROM python:3.5.2
 ## Dependencies
 
 RUN \
-  apt-get -qq -y update && apt-get -y install unzip
+  apt-get -qq -y update && apt-get -y install unzip && pip install --upgrade pip
 
 RUN  \
   pip3 install -U nltk \
   tqdm \
-  django \
-  asgi_redis \
-  channels && \
+  django==1.10 \
+  channels==1.1.6 \
+  asgiref==2.0.0 \
+  asgi_redis && \
   python3 -m nltk.downloader punkt
 
 ## Tensorflow
